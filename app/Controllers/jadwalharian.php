@@ -25,12 +25,22 @@ class jadwalharian extends BaseController
     {
         $Modeljadwalharian = new Modeljadwalharian();
         $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
-        ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-        ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-        ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-        ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-        ->findAll();
-  
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+                ->findAll();
+
+        // Get the current week range
+        $today = new DateTime();
+        $monday = clone $today->modify('this week')->modify('Monday');
+        $sunday = clone $today->modify('this week')->modify('Sunday');
+
+        // Filter the data to include only the current week range
+        $data = array_filter($data, function($row) use ($monday, $sunday) {
+            $rowDate = new DateTime($row['tanggal_kelas']);
+            return ($rowDate >= $monday && $rowDate <= $sunday);
+        });
 
         foreach ($data as &$row) {
             $row['id_instruktur'] = $row['nama'];
@@ -48,6 +58,7 @@ class jadwalharian extends BaseController
         ];
 
         return $this->respond($response, 200);
+        
     }
 
     public function show($kelas = null)
@@ -104,10 +115,9 @@ class jadwalharian extends BaseController
         $currentDate = new DateTime();
         $currentDayOfWeek = $currentDate->format('w');
     
-        // Get the date of the next occurrence of Sunday (i.e., the start of the next week) starting from the current date
-        $nextSunday = new DateTime();
-        $nextSunday->modify('next Sunday');
-        $nextSunday->modify("+{$currentDayOfWeek} days");
+        // Get the start date of the current week
+        $startDate = new DateTime();
+        $startDate->modify("-{$currentDayOfWeek} days");
     
         // Loop through the data and insert records into the jadwalharian table
         foreach ($dataJadwalumum as $row) {
@@ -116,7 +126,7 @@ class jadwalharian extends BaseController
     
             // Get the date of the next occurrence of the given day of the week starting from the current date
             $nextOccurrence = new DateTime();
-            $nextOccurrence->setTimestamp(strtotime("next $englishDay", $nextSunday->getTimestamp()));
+            $nextOccurrence->setTimestamp(strtotime("next $englishDay", $startDate->getTimestamp()));
     
             // Format the date as required for the tanggal_kelas field
             $tanggal_kelas = $nextOccurrence->format('Y-m-d') . ' s/d ' . $nextOccurrence->modify('+6 days')->format('Y-m-d');
@@ -126,7 +136,7 @@ class jadwalharian extends BaseController
                 'tanggal_kelas' => $tanggal_kelas,
                 'id_instruktur' => $row['id_instruktur'],
                 'id_kelas' => $row['id_kelas'],
-                'status' => 'aktif'
+                'status' => 'scheaduled'
             ]);
         }
     
@@ -136,7 +146,8 @@ class jadwalharian extends BaseController
             'message' => "Register Berhasil"
         ];
         return $this->respond($response, 201);
-    }
+    }    
+
     
     public function update($id = null)
     {
