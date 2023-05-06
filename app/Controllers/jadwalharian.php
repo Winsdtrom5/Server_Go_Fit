@@ -61,32 +61,45 @@ class jadwalharian extends BaseController
         
     }
 
-    public function show($kelas = null)
+    public function show($nama = null, $hari = null, $jam = null)
     {
-        $Modeljadwalharian = new Modeljadwalharian();
-        $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari,jadwalumum.jam
-        ,instruktur.nama , kelas.nama_kelas, kelas.tarif')
-            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+        $Modeljadwalumum = new Modeljadwalumum();
+        $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
             ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
             ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->where('kelas.nama_kelas', $kelas)
+            ->where('jadwalumum.hari', $hari)
             ->get()
             ->getResult();
     
-        if ($data) {
+        $match = false;
+        $input_time = DateTime::createFromFormat('H:i', $jam);
+    
+        foreach ($data as $row) {
+            if ($row->nama == $nama) {
+                $existing_time = DateTime::createFromFormat('H:i', $row->jam);
+                $end_time = clone $existing_time;
+                $end_time->add(new DateInterval('PT2H'));
+    
+                if ($input_time >= $existing_time && $input_time <= $end_time) {
+                    $match = true;
+                    break;
+                }
+            }
+        }
+    
+        if ($match) {
             $response = [
                 'status' => 200,
                 'error' => false,
                 'message' => '',
                 'totaldata' => 1,
-                'data' => $data,
+                'data' => $row,
             ];
             return $this->respond($response, 200);
         } else {
-            return $this->failNotFound('Maaf, data ' . $kelas . ' tidak ditemukan atau password salah');
-        }
+            return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+        }   
     }
-     
 
     public function create()
     {
@@ -152,18 +165,58 @@ class jadwalharian extends BaseController
     public function update($id = null)
     {
         $model = new Modeljadwalharian();
-        $data = $this->request->getJSON(true);
-        $nama = $this->request->getVar("nama");
-        $nama_kelas = $this->request->getVar("nama_kelas");
+        $data = $model->find($id);
+        if (empty($data)) {
+            $response = [
+                'status' => 404,
+                'error' => "true",
+                'message' => "Data not found",
+            ];
+            return $this->respond($response, 404);
+        }
+        
+        $request_data = $this->request->getJSON(true);
+        $status = $request_data['status'] ?? null;
+        $nama = $request_data['nama'] ?? null;
+        
+        if (empty($nama)) {
+            $response = [
+                'status' => 400,
+                'error' => "true",
+                'message' => "Nama is required",
+            ];
+            return $this->respond($response, 400);
+        }      
+        if($status != 'Digantikan'){
+            $data['id_instruktur'] = null;
+        }else{
+            $Modelinstruktur = new Modelinstruktur();
+            $instruktur = $Modelinstruktur->where('nama', $nama)->first();
+    
+            if ($instruktur == null) {
+                $response = [
+                    'status' => 404,
+                    'error' => "true",
+                    'message' => "Instruktur not found",
+                ];
+                return $this->respond($response, 404);
+            }
+    
+            $id_instruktur = $instruktur['id_instruktur'];
+            $data['id_instruktur'] = $id_instruktur;
+        }
+        $data['status'] = $status;
         
         $model->update($id, $data);
+
         $response = [
             'status' => 200,
             'error' => null,
-            'message' => "Done"
+            'message' => $id_instruktur,
         ];
-        return $this->respond($response, 201);
-    }
+
+        return $this->respond($response, 200);
+    }    
 
 
     public function delete($id_jadwalharian)

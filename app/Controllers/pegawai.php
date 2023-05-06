@@ -41,7 +41,7 @@ class pegawai extends BaseController
 
     public function show($nama = null,$password = null,$category = null)
     {
-        if($category == "forgot"){
+        if($password == null){
             $Modelpegawai = new Modelpegawai();
             $data = $Modelpegawai->where('email', $nama)->get()->getResult();
             if (count($data) > 0) { // Update condition to check if data is not empty

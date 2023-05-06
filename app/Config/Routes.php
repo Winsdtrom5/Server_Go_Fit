@@ -37,6 +37,7 @@ $routes->resource('jadwalumum', ['filter' => 'cors']);
 $routes->resource('jadwalharian', ['filter' => 'cors']);
 $routes->resource('instruktur', ['filter' => 'cors']);
 $routes->resource('kelas', ['filter' => 'cors']);
+$routes->resource('aktivasi', ['filter' => 'cors']);
 // $routes->get('member/(:num)', 'Member::showmember/$1', ['filter' => 'cors']);
 // $routes->get('login', 'Login::index');
 /*

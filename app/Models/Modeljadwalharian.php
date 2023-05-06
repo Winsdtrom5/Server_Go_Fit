@@ -9,6 +9,6 @@ class Modeljadwalharian extends Model
     protected $table = 'jadwalharian';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'id','jadwal','tanggal_kelas','status','jumlah_peserta'
+        'id','jadwal','tanggal_kelas','status','id_instruktur'
     ];
 }
