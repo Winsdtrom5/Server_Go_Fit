@@ -95,10 +95,25 @@ class aktivasi extends BaseController
 
         $Modelpegawai = new Modelpegawai();
         $pegawai = $Modelpegawai->where('email', $email)->first();
-
+        if ($pegawai === null) {
+            $response = [
+                'status' => 200,
+                'error' => "false",
+                'message' => 'Gagal',
+            ];
+            return $this->respond($response, 200);
+        }
         $id_pegawai = $pegawai['id_pegawai'];
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
+        if ($member === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Gagal, member tidak ditemukan.',
+            ];
+            return $this->respond($response, 200);
+        }
         $id_member = $member['id_member'];
         $Modelaktivasi->insert([
             'tanggal' => $tanggal,
@@ -134,6 +149,14 @@ class aktivasi extends BaseController
         $id_pegawai = $pegawai['id_pegawai'];
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
+        if ($member === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Gagal, member tidak ditemukan.',
+            ];
+            return $this->respond($response, 200);
+        }
         $id_member = $member['id_member'];
         $data['tanggal'] = $this->request->getVar("tanggal");
         $data['harga'] = $this->request->getVar("harga");

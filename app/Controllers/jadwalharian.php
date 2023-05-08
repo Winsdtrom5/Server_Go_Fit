@@ -25,30 +25,48 @@ class jadwalharian extends BaseController
     {
         $Modeljadwalharian = new Modeljadwalharian();
         $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                ->findAll();
-
+                        ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                        ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+                        ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                        ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+                        ->findAll();
+        
         // Get the current week range
         $today = new DateTime();
         $monday = clone $today->modify('this week')->modify('Monday');
         $sunday = clone $today->modify('this week')->modify('Sunday');
-
+        
         // Filter the data to include only the current week range
         $data = array_filter($data, function($row) use ($monday, $sunday) {
             $rowDate = new DateTime($row['tanggal_kelas']);
             return ($rowDate >= $monday && $rowDate <= $sunday);
         });
-
+        
+        // Define a map from day name to day index (0-6)
+        $dayMap = [
+            'Senin' => 0,
+            'Selasa' => 1,
+            'Rabu' => 2,
+            'Kamis' => 3,
+            'Jumat' => 4,
+            'Sabtu' => 5,
+            'Minggu' => 6,
+        ];
+        
+        // Sort the data by day of the week
+        usort($data, function($a, $b) use ($dayMap) {
+            $dayA = $dayMap[$a['hari']];
+            $dayB = $dayMap[$b['hari']];
+            return $dayA - $dayB;
+        });
+        
         foreach ($data as &$row) {
             $row['id_instruktur'] = $row['nama'];
             $row['id_kelas'] = $row['nama_kelas'];
             $row['hari'] = $row['hari'];
             unset($row['id_instruktur'], $row['id_kelas']);
         }
-
+        
         $response = [
             'status' => 200,
             'error' => "false",
@@ -56,9 +74,8 @@ class jadwalharian extends BaseController
             'totaldata' => count($data),
             'data' => $data,
         ];
-
-        return $this->respond($response, 200);
         
+        return $this->respond($response, 200);        
     }
 
     public function show($nama = null, $hari = null, $jam = null)
@@ -104,7 +121,6 @@ class jadwalharian extends BaseController
     public function create()
     {
         $Modeljadwalharian = new Modeljadwalharian();
-        $nama = $this->request->getPost("nama");
         $Modeljadwalumum = new Modeljadwalumum();
         $dataJadwalumum = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif')
             ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
