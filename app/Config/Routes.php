@@ -42,6 +42,7 @@ $routes->resource('promopaket', ['filter' => 'cors']);
 $routes->resource('promoreguler', ['filter' => 'cors']);
 $routes->resource('depositkelas', ['filter' => 'cors']);
 $routes->resource('deposituang', ['filter' => 'cors']);
+$routes->resource('izininstruktur', ['filter' => 'cors']);
 // $routes->get('member/(:num)', 'Member::showmember/$1', ['filter' => 'cors']);
 // $routes->get('login', 'Login::index');
 /*

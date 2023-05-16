@@ -50,9 +50,9 @@ class instruktur extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null,$password = null,$category = null)
+    public function show($nama = null, $password = null, $category = null)
     {
-        if($category == "forgot"){
+        if ($category == "forgot") {
             $Modelinstruktur = new Modelinstruktur();
             $data = $Modelinstruktur->where('nama', $nama)->get()->getResult();
             if (count($data) > 1) {
@@ -77,11 +77,11 @@ class instruktur extends BaseController
                 return $this->failNotFound('maaf data ' . $nama .
                     ' tidak ditemukan');
             }
-        }else{
+        } else {
             $encryption = \Config\Services::encrypter();
             $Modelinstruktur = new Modelinstruktur();
             $data = $Modelinstruktur->where('nama', $nama)->get()->getRow();
-            if ($data && password_verify($password,$data['password'])) {
+            if ($data && password_verify($password, $data['password'])) {
                 $response = [
                     'status' => 200,
                     'error' => false,
@@ -95,20 +95,20 @@ class instruktur extends BaseController
             }
         }
     }
-    
+
 
     public function create()
     {
         $Modelinstruktur = new Modelinstruktur();
         $nama = $this->request->getPost("nama");
-        $encryption= \Config\Services::encrypter();
-        $password = bin2hex($encryption->encrypt($this->request->getPost("password"))); 
+        $encryption = \Config\Services::encrypter();
+        $password = bin2hex($encryption->encrypt($this->request->getPost("password")));
         // Generate Bcrypt hash of the password
         $umur = $this->request->getPost("umur");
         $no_telp = $this->request->getPost("no_telp");
         $Modelinstruktur->insert([
             'nama' => $nama,
-            'password'=> $password,
+            'password' => $password,
             'umur' => $umur,
             'no_telp' => $no_telp
         ]);
@@ -122,36 +122,48 @@ class instruktur extends BaseController
 
     public function update($id_instruktur = null)
     {
-        $model = new Modelinstruktur();
-        $data = $this->request->getJSON(true);
-        // Update only non-empty values
-        if (!empty($this->request->getVar("nama_member"))) {
-            $data['nama_member'] = $this->request->getVar("nama_member");
-        }
-        if (array_key_exists('password', $data)) {
-            // Encrypt the password
-            $encryption = \Config\Services::encrypter();
-            $data['password'] = bin2hex($encryption->encrypt($data['password']));
+        if ($id_instruktur == "reset") {
+            $model = new Modelinstruktur();
+            $data = ['keterlambatan' => '00:00:00'];
+            $model->where('1=1')->set($data)->update(); // Update all rows in the table
             $response = [
                 'status' => 200,
                 'error' => null,
-                'message' => "Aman"
+                'message' => $data['keterlambatan'],
             ];
+            return $this->respond($response, 201);        
         } else {
-            $response = [
-                'status' => 200,
-                'error' => 'PasswordRequired',
-                'message' => "Password is required"
-            ];
-        }        
-        if (!empty($this->request->getVar("umur"))) {
-            $data['umur'] = $this->request->getVar("umur");
+            $model = new Modelinstruktur();
+            $data = $this->request->getJSON(true);
+            // Update only non-empty values
+            if (!empty($this->request->getVar("nama"))) {
+                $data['nama_member'] = $this->request->getVar("nama");
+            }
+            if (array_key_exists('password', $data)) {
+                // Encrypt the password
+                $encryption = \Config\Services::encrypter();
+                $data['password'] = bin2hex($encryption->encrypt($data['password']));
+                $response = [
+                    'status' => 200,
+                    'error' => null,
+                    'message' => "Aman"
+                ];
+            } else {
+                $response = [
+                    'status' => 200,
+                    'error' => 'PasswordRequired',
+                    'message' => "Password is required"
+                ];
+            }
+            if (!empty($this->request->getVar("umur"))) {
+                $data['umur'] = $this->request->getVar("umur");
+            }
+            if (!empty($this->request->getVar("no_telp"))) {
+                $data['no_telp'] = $this->request->getVar("no_telp");
+            }
+            $model->update($id_instruktur, $data);
+            return $this->respond($response, 201);
         }
-        if (!empty($this->request->getVar("no_telp"))) {
-            $data['no_telp'] = $this->request->getVar("no_telp");
-        }
-        $model->update($id_instruktur, $data);
-        return $this->respond($response, 201);
     }
 
     public function delete($nama)

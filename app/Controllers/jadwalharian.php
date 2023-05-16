@@ -25,23 +25,23 @@ class jadwalharian extends BaseController
     {
         $Modeljadwalharian = new Modeljadwalharian();
         $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
-                        ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                        ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                        ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                        ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                        ->findAll();
-        
+            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+            ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+            ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+            ->findAll();
+
         // Get the current week range
         $today = new DateTime();
         $monday = clone $today->modify('this week')->modify('Monday');
         $sunday = clone $today->modify('this week')->modify('Sunday');
-        
+
         // Filter the data to include only the current week range
-        $data = array_filter($data, function($row) use ($monday, $sunday) {
+        $data = array_filter($data, function ($row) use ($monday, $sunday) {
             $rowDate = new DateTime($row['tanggal_kelas']);
             return ($rowDate >= $monday && $rowDate <= $sunday);
         });
-        
+
         // Define a map from day name to day index (0-6)
         $dayMap = [
             'Senin' => 0,
@@ -52,21 +52,21 @@ class jadwalharian extends BaseController
             'Sabtu' => 5,
             'Minggu' => 6,
         ];
-        
+
         // Sort the data by day of the week
-        usort($data, function($a, $b) use ($dayMap) {
+        usort($data, function ($a, $b) use ($dayMap) {
             $dayA = $dayMap[$a['hari']];
             $dayB = $dayMap[$b['hari']];
             return $dayA - $dayB;
         });
-        
+
         foreach ($data as &$row) {
             $row['id_instruktur'] = $row['nama'];
             $row['id_kelas'] = $row['nama_kelas'];
             $row['hari'] = $row['hari'];
-            unset($row['id_instruktur'], $row['id_kelas']);
+            unset($row['id_instruktur'], $row['id_kelas'], $row['jadwal']);
         }
-        
+
         $response = [
             'status' => 200,
             'error' => "false",
@@ -74,48 +74,82 @@ class jadwalharian extends BaseController
             'totaldata' => count($data),
             'data' => $data,
         ];
-        
-        return $this->respond($response, 200);        
+
+        return $this->respond($response, 200);
     }
 
-    public function show($nama = null, $hari = null, $jam = null)
+    public function show($hari = null, $nama = null, $jam = null)
     {
-        $Modeljadwalumum = new Modeljadwalumum();
-        $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
-            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
-            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->where('jadwalumum.hari', $hari)
-            ->get()
-            ->getResult();
-    
-        $match = false;
-        $input_time = DateTime::createFromFormat('H:i', $jam);
-    
-        foreach ($data as $row) {
-            if ($row->nama == $nama) {
-                $existing_time = DateTime::createFromFormat('H:i', $row->jam);
-                $end_time = clone $existing_time;
-                $end_time->add(new DateInterval('PT2H'));
-    
-                if ($input_time >= $existing_time && $input_time <= $end_time) {
-                    $match = true;
-                    break;
+        if ($nama == null && $jam == null) {
+            $Modeljadwalharian = new Modeljadwalharian();
+
+            $startOfWeek = date('Y-m-d', strtotime('monday this week'));
+            $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
+            
+            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+                ->where('jadwalumum.hari', $hari)
+                ->where('jadwalharian.tanggal_kelas BETWEEN "' . $startOfWeek . '" AND "' . $endOfWeek . '"')
+                ->get()
+                ->getResult();
+            
+            foreach ($data as &$row) {
+                unset($row->id_instruktur, $row->id_kelas, $row->jadwal);
+            }
+            
+            if ($data) {
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $data,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+            }            
+        } else {
+            $Modeljadwalumum = new Modeljadwalumum();
+            $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
+                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->where('jadwalumum.hari', $hari)
+                ->get()
+                ->getResult();
+
+            $match = false;
+            $input_time = DateTime::createFromFormat('H:i', $jam);
+
+            foreach ($data as $row) {
+                if ($row->nama == $nama) {
+                    $existing_time = DateTime::createFromFormat('H:i', $row->jam);
+                    $end_time = clone $existing_time;
+                    $end_time->add(new DateInterval('PT2H'));
+
+                    if ($input_time >= $existing_time && $input_time <= $end_time) {
+                        $match = true;
+                        break;
+                    }
                 }
             }
+
+            if ($match) {
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $row,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+            }
         }
-    
-        if ($match) {
-            $response = [
-                'status' => 200,
-                'error' => false,
-                'message' => '',
-                'totaldata' => 1,
-                'data' => $row,
-            ];
-            return $this->respond($response, 200);
-        } else {
-            return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-        }   
     }
 
     public function create()
@@ -128,7 +162,7 @@ class jadwalharian extends BaseController
             ->orderBy('hari', 'ASC')
             ->orderBy('jam', 'ASC') // Then order by jam in ascending order
             ->findAll();
-    
+
         // Map the day name to English day name
         $dayMap = [
             'Senin' => 'Monday',
@@ -139,45 +173,45 @@ class jadwalharian extends BaseController
             'Sabtu' => 'Saturday',
             'Minggu' => 'Sunday',
         ];
-    
+
         // Get the current date and day of the week as an integer (0 = Sunday, 1 = Monday, etc.)
         $currentDate = new DateTime();
         $currentDayOfWeek = $currentDate->format('w');
-    
+
         // Get the start date of the current week
         $startDate = new DateTime();
         $startDate->modify("-{$currentDayOfWeek} days");
-    
+
         // Loop through the data and insert records into the jadwalharian table
         foreach ($dataJadwalumum as $row) {
             $hari = $row['hari'];
             $englishDay = $dayMap[$hari];
-    
+
             // Get the date of the next occurrence of the given day of the week starting from the current date
             $nextOccurrence = new DateTime();
             $nextOccurrence->setTimestamp(strtotime("next $englishDay", $startDate->getTimestamp()));
-    
+
             // Format the date as required for the tanggal_kelas field
             $tanggal_kelas = $nextOccurrence->format('Y-m-d') . ' s/d ' . $nextOccurrence->modify('+6 days')->format('Y-m-d');
-    
+
             $Modeljadwalharian->insert([
                 'jadwal' => $row['id'],
                 'tanggal_kelas' => $tanggal_kelas,
-                'id_instruktur' => $row['id_instruktur'],
+                // 'id_instruktur' => $row['id_instruktur'],
                 'id_kelas' => $row['id_kelas'],
                 'status' => 'scheaduled'
             ]);
         }
-    
+
         $response = [
             'status' => 201,
             'error' => "false",
             'message' => "Register Berhasil"
         ];
         return $this->respond($response, 201);
-    }    
+    }
 
-    
+
     public function update($id = null)
     {
         $model = new Modeljadwalharian();
@@ -190,11 +224,11 @@ class jadwalharian extends BaseController
             ];
             return $this->respond($response, 404);
         }
-        
+
         $request_data = $this->request->getJSON(true);
         $status = $request_data['status'] ?? null;
         $nama = $request_data['nama'] ?? null;
-        
+
         if (empty($nama)) {
             $response = [
                 'status' => 400,
@@ -202,13 +236,13 @@ class jadwalharian extends BaseController
                 'message' => "Nama is required",
             ];
             return $this->respond($response, 400);
-        }      
-        if($status != 'Digantikan'){
+        }
+        if ($status != 'Digantikan') {
             $data['id_instruktur'] = null;
-        }else{
+        } else {
             $Modelinstruktur = new Modelinstruktur();
             $instruktur = $Modelinstruktur->where('nama', $nama)->first();
-    
+
             if ($instruktur == null) {
                 $response = [
                     'status' => 404,
@@ -217,12 +251,12 @@ class jadwalharian extends BaseController
                 ];
                 return $this->respond($response, 404);
             }
-    
+
             $id_instruktur = $instruktur['id_instruktur'];
             $data['id_instruktur'] = $id_instruktur;
         }
         $data['status'] = $status;
-        
+
         $model->update($id, $data);
 
         $response = [
@@ -232,7 +266,7 @@ class jadwalharian extends BaseController
         ];
 
         return $this->respond($response, 200);
-    }    
+    }
 
 
     public function delete($id_jadwalharian)

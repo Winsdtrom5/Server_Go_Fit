@@ -51,11 +51,11 @@ class member extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null,$password = null,$category = null)
+    public function show($nama = null, $password = null, $category = null)
     {
-        if($category == "searchmember"){
+        if ($category == "searchmember") {
             $Modelmember = new Modelmember();
-            $data = $Modelmember->where('nama_member', $nama)->get()->getResult();
+            $data = $Modelmember->where('email', $nama)->get()->getResult();
             if (count($data) > 1) {
                 $response = [
                     'status' => 200,
@@ -78,10 +78,10 @@ class member extends BaseController
                 return $this->failNotFound('maaf data ' . $nama .
                     ' tidak ditemukan');
             }
-        }else{
+        } else {
             $encryption = \Config\Services::encrypter();
             $Modelmember = new Modelmember();
-            $data = $Modelmember->where('nama_member', $nama)->get()->getRow();
+            $data = $Modelmember->where('email', $nama)->get()->getRow();
             $passworddecrypt = $encryption->decrypt(hex2bin($data->password));
             if ($data && $password == $passworddecrypt) {
                 // $encryption->decrypt(hex2bin($data->tanggal_lahir)
@@ -98,7 +98,7 @@ class member extends BaseController
             }
         }
     }
-    
+
     public function showmember($id = null)
     {
         $Modelmember = new Modelmember();
@@ -120,91 +120,118 @@ class member extends BaseController
 
     public function create()
     {
-        $Modelmember = new Modelmember();
+        $modelmember = new Modelmember();
         $nama_member = $this->request->getPost("nama_member");
         $umur = $this->request->getPost("umur");
-        $encryption= \Config\Services::encrypter();
-        $password = bin2hex($encryption->encrypt($this->request->getPost("password"))); 
+        $encryption = \Config\Services::encrypter();
+        $password = bin2hex($encryption->encrypt($this->request->getPost("password")));
         $tanggal_lahir = $this->request->getPost("tanggal_lahir");
         $email = $this->request->getPost("email");
         $no_telp = $this->request->getPost("no_telp");
         $date_daftar = $this->request->getPost("date_daftar");
         $deposit_uang = $this->request->getPost("deposit_uang");
         $deposit_kelas = $this->request->getPost("deposit_kelas");
-        $Expiration_Date = $this->request->getPost("Expiration_Date");
+        $expiration_date = $this->request->getPost("expiration_date");
         $status = $this->request->getPost("status");
-            $Modelmember->insert([
-                'nama_member' => $nama_member,
-                'password' => $password,
-                'tanggal_lahir'=> $tanggal_lahir,
-                'umur' => $umur,
-                'email' => $email,
-                'no_telp' => $no_telp,
-                'date_daftar' => $date_daftar,
-                'deposit_uang' => $deposit_uang,
-                'deposit_kelas' => $deposit_kelas,
-                'Expiration_Date' => $Expiration_Date,
-                'status' => $status
-            ]);
-            $response = [
-                'status' => 201,
-                'error' => "false",
-                'message' => "Register Berhasil"
-            ];
-            return $this->respond($response, 201);
-        // }
+
+        // Retrieve the uploaded file
+        // $profile_picture = $this->request->getFile("profile_picture");
+
+        // // Move the uploaded file to a new location
+        // $new_path = WRITEPATH . 'uploads/profile_pictures/';
+        // $new_name = $profile_picture->getRandomName();
+        // $profile_picture->move($new_path, $new_name);
+
+        // Save the new member record to the database
+        $modelmember->insert([
+            'nama_member' => $nama_member,
+            'password' => $password,
+            'tanggal_lahir' => $tanggal_lahir,
+            'umur' => $umur,
+            'email' => $email,
+            'no_telp' => $no_telp,
+            'date_daftar' => $date_daftar,
+            'deposit_uang' => $deposit_uang,
+            'deposit_kelas' => $deposit_kelas,
+            'expiration_date' => $expiration_date,
+            'status' => $status,
+            // 'profile_picture' => $new_path . $new_name
+        ]);
+
+        $response = [
+            'status' => 201,
+            'error' => "false",
+            'message' => "Register Berhasil"
+        ];
+
+        return $this->respond($response, 201);
     }
 
-    public function update($id_member = null,$status = null)
+
+
+    public function update($id_member = null, $status = null)
     {
-        $model = new Modelmember();
-        $data = $this->request->getJSON(true);
-        // Update only non-empty values
-        if (!empty($this->request->getVar("nama_member"))) {
-            $data['nama_member'] = $this->request->getVar("nama_member");
-        }
-        if (array_key_exists('password', $data)) {
-            // Encrypt the password
-            $encryption = \Config\Services::encrypter();
-            $data['password'] = bin2hex($encryption->encrypt($data['password']));
+        if ($status == "editdata") {
+            $model = new Modelmember();
+            $data = $this->request->getJSON(true);
+            // Update only non-empty values
+            if (!empty($this->request->getVar("nama_member"))) {
+                $data['nama_member'] = $this->request->getVar("nama_member");
+            }
+            if (array_key_exists('password', $data)) {
+                // Encrypt the password
+                $encryption = \Config\Services::encrypter();
+                $data['password'] = bin2hex($encryption->encrypt($data['password']));
+                $response = [
+                    'status' => 200,
+                    'error' => null,
+                    'message' => "Aman"
+                ];
+            } else {
+                $response = [
+                    'status' => 200,
+                    'error' => 'PasswordRequired',
+                    'message' => "Password is required"
+                ];
+            }
+            if (!empty($this->request->getVar("umur"))) {
+                $data['umur'] = $this->request->getVar("umur");
+            }
+            if (!empty($this->request->getVar("no_telp"))) {
+                $data['no_telp'] = $this->request->getVar("no_telp");
+            }
+            if (!empty($this->request->getVar("email"))) {
+                $data['email'] = $this->request->getVar("email");
+            }
+            if (!empty($this->request->getVar("tanggal_lahir"))) {
+                $data['tanggal_lahir'] = $this->request->getVar("tanggal_lahir");
+            }
+            if (!empty($this->request->getVar("deposit_uang"))) {
+                $data['deposit_uang'] = $this->request->getVar("deposit_uang");
+            }
+            if (!empty($this->request->getVar("deposit_kelas"))) {
+                $data['deposit_kelas'] = $this->request->getVar("deposit_kelas");
+            }
+            if (!empty($this->request->getVar("Expiration_Date"))) {
+                $data['Expiration_Date'] = $this->request->getVar("Expiration_Date");
+            }
+            if (!empty($this->request->getVar("status"))) {
+                $data['status'] = $this->request->getVar("status");
+            }
+            $model->update($id_member, $data);
+            return $this->respond($response, 201);
+        } else if ($status == "deposituang") {
+            $model = new Modelmember();
+            $request_data = $this->request->getJSON(true);
+            $status = $request_data['deposit_uang'];
+            $model->update($id_member, $request_data);
+
             $response = [
                 'status' => 200,
                 'error' => null,
-                'message' => "Aman"
+                'message' => 'done',
             ];
-        } else {
-            $response = [
-                'status' => 200,
-                'error' => 'PasswordRequired',
-                'message' => "Password is required"
-            ];
-        }        
-        if (!empty($this->request->getVar("umur"))) {
-            $data['umur'] = $this->request->getVar("umur");
         }
-        if (!empty($this->request->getVar("no_telp"))) {
-            $data['no_telp'] = $this->request->getVar("no_telp");
-        }
-        if (!empty($this->request->getVar("email"))) {
-            $data['email'] = $this->request->getVar("email");
-        }
-        if (!empty($this->request->getVar("tanggal_lahir"))) {
-            $data['tanggal_lahir'] = $this->request->getVar("tanggal_lahir");
-        }
-        if (!empty($this->request->getVar("deposit_uang"))) {
-            $data['deposit_uang'] = $this->request->getVar("deposit_uang");
-        }
-        if (!empty($this->request->getVar("deposit_kelas"))) {
-            $data['deposit_kelas'] = $this->request->getVar("deposit_kelas");
-        }
-        if (!empty($this->request->getVar("Expiration_Date"))) {
-            $data['Expiration_Date'] = $this->request->getVar("Expiration_Date");
-        }
-        if (!empty($this->request->getVar("status"))) {
-            $data['status'] = $this->request->getVar("status");
-        }
-        $model->update($id_member, $data);
-        return $this->respond($response, 201);
     }
 
     public function delete($id_member)

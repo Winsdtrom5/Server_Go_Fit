@@ -4,26 +4,24 @@ namespace App\Controllers;
 
 use CodeIgniter\API\ResponseTrait;
 use App\Models\Modelmember;
-use App\Models\Modelpromopaket;
-use App\Models\Modelpegawai;
-use App\Models\Modelkelas;
+use App\Models\Modeljadwalharian;
 use App\Controllers\BaseController;
-use App\Models\Modeldepositkelas;
+use App\Models\Modelbookingkelas;
 use DateTime;
 
-class depositkelas extends BaseController
+class bookingkelas extends BaseController
 {
     use ResponseTrait;
 
     public function index()
     {
-        $Modeldepositkelas = new Modeldepositkelas();
-        $data = $Modeldepositkelas->select('depositkelas.*, pegawai.nama_pegawai 
-        ,kelas.nama_kelas, member.nama_member, promo_paket.nama_promo')
-            ->join('pegawai', 'depositkelas.id_pegawai = pegawai.id_pegawai')
-            ->join('member', 'depositkelas.id_member = member.id_member')
-            ->join('kelas', 'depositkelas.id_kelas = kelas.id_kelas')
-            ->join('promo_paket', 'depositkelas.id_promo = promo_paket.id_promo', 'left') // First order by hari in ascending order// Then order by hari in ascending order
+        $Modelbookingkelas = new Modelbookingkelas();
+        $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+        jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            ->join('jadwa', 'bookingkelas.id_pegawai = pegawai.id_pegawai')
+            ->join('member', 'bookingkelas.id_member = member.id_member')
+            ->join('kelas', 'bookingkelas.id_kelas = kelas.id_kelas')
+            ->join('promo_paket', 'bookingkelas.id_promo = promo_paket.id_promo', 'left') // First order by hari in ascending order// Then order by hari in ascending order
             ->findAll();
 
         foreach ($data as &$row) {
@@ -44,9 +42,9 @@ class depositkelas extends BaseController
     public function show($nama = null, $nama_kelas = null)
     {
         if ($nama_kelas == null) {
-            $Modeldepositkelas = new Modeldepositkelas();
-            $data = $Modeldepositkelas->select('depositkelas.*, member.*')
-                ->join('member', 'depositkelas.id_member = member.id_member')
+            $Modelbookingkelas = new Modelbookingkelas();
+            $data = $Modelbookingkelas->select('bookingkelas.*, member.*')
+                ->join('member', 'bookingkelas.id_member = member.id_member')
                 ->where('member.nama_member', $nama)
                 ->get()
                 ->getResult();
@@ -73,10 +71,10 @@ class depositkelas extends BaseController
                 return $this->failNotFound('Maaf, data kelas ' . $nama_kelas . ' tidak ditemukan');
             }
         } else {
-            $Modeldepositkelas = new Modeldepositkelas();
-            $data = $Modeldepositkelas->select('depositkelas.*, kelas.* , member.*')
-                ->join('kelas', 'depositkelas.id_kelas = kelas.id_kelas')
-                ->join('member', 'depositkelas.id_member = member.id_member')
+            $Modelbookingkelas = new Modelbookingkelas();
+            $data = $Modelbookingkelas->select('bookingkelas.*, kelas.* , member.*')
+                ->join('kelas', 'bookingkelas.id_kelas = kelas.id_kelas')
+                ->join('member', 'bookingkelas.id_member = member.id_member')
                 ->where('kelas.nama_kelas', $nama_kelas)
                 ->where('member.nama_member', $nama)
                 ->get()
@@ -110,7 +108,7 @@ class depositkelas extends BaseController
 
     public function create()
     {
-        $Modeldepositkelas = new Modeldepositkelas();
+        $Modelbookingkelas = new Modelbookingkelas();
         $nama_member = $this->request->getPost("nama_member");
         $nama_kelas = $this->request->getPost("nama_kelas");
         $jumlah_deposit = $this->request->getPost("jumlah_deposit");
@@ -154,7 +152,7 @@ class depositkelas extends BaseController
         $Modelpromo = new Modelpromopaket();
         $promo = $Modelpromo->where('id_promo', $promo)->first();
         if ($promo === null) {
-            $Modeldepositkelas->insert([
+            $Modelbookingkelas->insert([
                 'tanggal' => $tanggal,
                 'harga' => $harga,
                 'id_pegawai' => $id_pegawai,
@@ -175,7 +173,7 @@ class depositkelas extends BaseController
         $batasDate = new DateTime();
         $batasDate->modify('+' . $batas . ' month');
         $batasString = $batasDate->format('Y-m-d');
-        $Modeldepositkelas->insert([
+        $Modelbookingkelas->insert([
             'tanggal' => $tanggal,
             'harga' => $harga,
             'id_pegawai' => $id_pegawai,
@@ -195,7 +193,7 @@ class depositkelas extends BaseController
 
     public function update($id = null)
     {
-        $model = new Modeldepositkelas();
+        $model = new Modelbookingkelas();
         $data = $this->request->getJSON(true);
         $jumlah_deposit = $this->request->getVar("jumlah_deposit");
         $data['id_pegawai'] = $jumlah_deposit;
