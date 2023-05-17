@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class Modelpresensikelas extends Model
 {
-    protected $table = 'presensikelas';
+    protected $table = 'presensi_kelas';
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'id_booking','status'

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use CodeIgniter\API\ResponseTrait;
 use App\Models\Modelizininstruktur;
+use App\Models\Modeljadwalharian;
 use App\Controllers\BaseController;
 use App\Models\Modelinstruktur;
 use DateTime;
@@ -129,16 +130,42 @@ class izininstruktur extends BaseController
     public function update($id = null)
     {
         $model = new Modelizininstruktur();
-        $data = $this->request->getJSON(true);
-        // Update only non-empty values
+        $data = $model->find($id);
+        if (empty($data)) {
+            $response = [
+                'status' => 404,
+                'error' => "true",
+                'message' => "Data not found",
+            ];
+            return $this->respond($response, 404);
+        }
         $data['status'] = 'Confirmed';
+        // Check if the `id_jadwal` key is present in the `$data` array
+        if (!isset($data['id_jadwal'])) {
+            $response = [
+                'status' => 400,
+                'error' => "true",
+                'message' => "id_jadwal is required",
+            ];
+            return $this->respond($response, 400);
+        }
+        
+        // Update the `jadwalharian` table
+        $modelJadwalHarian = new Modeljadwalharian();
+        $modelJadwalHarian->where('id', $data['id_jadwal'])
+                          ->set(['status' => 'Libur'])
+                          ->update();
+        
         $model->update($id, $data);
+        
         $response = [
             'status' => 200,
             'error' => null,
             'message' => $data,
         ];
+        
         return $this->respond($response, 201);
+             
     }
 
 

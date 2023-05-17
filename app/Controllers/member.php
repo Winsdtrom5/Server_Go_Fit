@@ -34,10 +34,23 @@ class member extends BaseController
     {
         $encryption = \Config\Services::encrypter();
         $Modelmember = new Modelmember();
-        $data = $Modelmember->findAll();
+        $data = $Modelmember->select('member.*,depositkelas.batas_berlaku,kelas.nama_kelas')
+            ->join('depositkelas', 'depositkelas.id_member = member.id_member', 'left')
+            ->join('kelas', 'depositkelas.id_kelas = kelas.id_kelas', 'left')
+            ->findAll();
 
         foreach ($data as &$row) {
             $row['password'] = $encryption->decrypt(hex2bin($row['password']));
+            $batas_berlaku = strtotime($row['batas_berlaku']);
+            $today = strtotime(date('Y-m-d'));
+            if ($batas_berlaku < $today) {
+                $row['deposit_kelas'] = 0;
+                if (!empty($row['id_member'])) {
+                    $Modelmember->update($row['id_member'], ['deposit_kelas' => 0]);
+                }
+            } else {
+                $row['deposit_kelas'] = $row['deposit_kelas'] ?? 0; // Set default value if deposit_kelas is null
+            }
         }
 
         $response = [

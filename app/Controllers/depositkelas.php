@@ -185,6 +185,7 @@ class depositkelas extends BaseController
             'batas_berlaku' => $batasString,
             'id_promo' => $id_promo,
         ]);
+        $Modelmember->update($id_member, ['deposit_kelas' => $jumlah_deposit]);
         $response = [
             'status' => 201,
             'error' => "false",

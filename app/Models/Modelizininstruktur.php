@@ -9,6 +9,6 @@ class Modelizininstruktur extends Model
     protected $table = 'izininstruktur';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'id_instruktur','tanggal_izin','alasan','status'
+        'id_jadwal','tanggal_izin','alasan','status'
     ];
 }

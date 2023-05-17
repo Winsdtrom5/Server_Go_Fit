@@ -130,6 +130,7 @@ class deposituang extends BaseController
             'id_promo' => $id_promo,
             'harga' => $harga
         ]);
+        $Modelmember->update($id_member, ['deposit_uang' => $jumlah_deposit]);
         $response = [
             'status' => 201,
             'error' => "false",

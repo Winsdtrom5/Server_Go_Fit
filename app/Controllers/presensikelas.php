@@ -9,17 +9,18 @@ use App\Models\Modeljadwalumum;
 use App\Models\Modelkelas;
 use App\Controllers\BaseController;
 use App\Models\Modelbookingkelas;
+use App\Models\Modelpresensikelas;
 use DateTime;
 
-class bookingkelas extends BaseController
+class presensikelas extends BaseController
 {
     use ResponseTrait;
-
     public function index()
     {
-        $Modelbookingkelas = new Modelbookingkelas();
-        $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+        $Modelpresensikelas = new Modelpresensikelas();
+        $data = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
             jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            ->join('bookingkelas','presensi_kelas.id_booking = bookingkelas.id')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
             ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
@@ -44,12 +45,12 @@ class bookingkelas extends BaseController
 
     public function show($nama = null)
     {
-        $Modelbookingkelas = new Modelbookingkelas();
-        $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+        $Modelpresensikelas = new Modelpresensikelas();
+        $data = $Modelpresensikelas->select('presensikelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
         jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
-            ->join('jadwal', 'bookingkelas.id_pegawai = pegawai.id_pegawai')
-            ->join('member', 'bookingkelas.id_member = member.id_member')
-            ->join('kelas', 'bookingkelas.id_kelas = kelas.id_kelas')
+            ->join('jadwal', 'presensikelas.id_pegawai = pegawai.id_pegawai')
+            ->join('member', 'presensikelas.id_member = member.id_member')
+            ->join('kelas', 'presensikelas.id_kelas = kelas.id_kelas')
             ->where('member.nama_member', $nama)
             ->get()
             ->getResult();
@@ -80,11 +81,12 @@ class bookingkelas extends BaseController
 
     public function create()
     {
-        $Modelbookingkelas = new Modelbookingkelas();
+        $Modelpresensikelas = new Modelpresensikelas();
         $nama_member = $this->request->getPost("nama_member");
         $nama_kelas = $this->request->getPost("nama_kelas");
         $tanggal = $this->request->getPost("tanggal");
         $jam = $this->request->getPost("jam");
+        $status = $this->request->getPost("status");
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
         if ($member === null) {
@@ -113,9 +115,12 @@ class bookingkelas extends BaseController
         $modeljadwalHarian = new Modeljadwalharian();
         $jadwalharian = $modeljadwalHarian->where('tanggal_kelas',$tanggal)->where('jadwal',$id_jadwal)->first();
         $id_jadwalharian = $jadwalharian['id'];
-        $Modelbookingkelas->insert([
-            'id_member' => $id_member,
-            'id_jadwal' => $id_jadwalharian
+        $modelbookingkelas = new Modelbookingkelas();
+        $bookingkelas = $modelbookingkelas->where('id_member',$id_member)->where('id_jadwal',$id_jadwalharian)->first();
+        $id_booking = $bookingkelas['id'];
+        $Modelpresensikelas->insert([
+            'id_booking' => $id_booking,
+            'status' => $status,
         ]);
         $response = [
             'status' => 201,
@@ -127,7 +132,7 @@ class bookingkelas extends BaseController
 
     public function update($id = null)
     {
-        $model = new Modelbookingkelas();
+        $model = new Modelpresensikelas();
         $data = $this->request->getJSON(true);
         $jumlah_deposit = $this->request->getVar("jumlah_deposit");
         $data['id_pegawai'] = $jumlah_deposit;

@@ -64,6 +64,14 @@ class jadwalharian extends BaseController
             $row['id_instruktur'] = $row['nama'];
             $row['id_kelas'] = $row['nama_kelas'];
             $row['hari'] = $row['hari'];
+            $date = new DateTime($row['tanggal_kelas']);
+            $datestring = $date->format('d M Y');
+            $datestring = str_replace(
+                ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                $datestring
+            );
+            $row['tanggal_kelas'] = $datestring;
             unset($row['id_instruktur'], $row['id_kelas'], $row['jadwal']);
         }
 
@@ -199,7 +207,8 @@ class jadwalharian extends BaseController
                 'tanggal_kelas' => $tanggal_kelas,
                 // 'id_instruktur' => $row['id_instruktur'],
                 'id_kelas' => $row['id_kelas'],
-                'status' => 'scheaduled'
+                'status' => 'scheaduled',
+                'sisa_peserta' => 10,
             ]);
         }
 
