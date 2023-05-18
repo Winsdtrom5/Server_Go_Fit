@@ -44,38 +44,43 @@ class presensikelas extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null)
+    public function show($nama_kelas = null,$tanggal = null, $jam = null)
     {
         $Modelpresensikelas = new Modelpresensikelas();
-        $data = $Modelpresensikelas->select('presensikelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-        jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
-            ->join('jadwal', 'presensikelas.id_pegawai = pegawai.id_pegawai')
-            ->join('member', 'presensikelas.id_member = member.id_member')
-            ->join('kelas', 'presensikelas.id_kelas = kelas.id_kelas')
-            ->where('member.nama_member', $nama)
+        $data = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            ->join('bookingkelas', 'presensi_kelas.id_booking = bookingkelas.id')
+            ->join('member', 'bookingkelas.id_member = member.id_member')
+            ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
+            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+            ->where('kelas.nama_kelas', $nama_kelas)
+            ->where('jadwalharian.tanggal_kelas',$tanggal)
+            ->where('jadwalumum.jam',$jam)
             ->get()
             ->getResult();
         if ($data) {
-            $total_deposit = 0;
-            foreach ($data as $row) {
-                $total_deposit += $row->jumlah_deposit;
-            }
+            // $total_deposit = 0;
+            // foreach ($data as $row) {
+            //     $total_deposit += $row->jumlah_deposit;
+            // }
 
-            $new_data = [
-                'nama_member' => $data[0]->nama_member,
-                'total_deposit' => $total_deposit,
-            ];
+            // $new_data = [
+            //     'nama_member' => $data[0]->nama_member,
+            //     'total_deposit' => $total_deposit,
+            // ];
 
             $response = [
                 'status' => 200,
                 'error' => false,
                 'message' => '',
                 'totaldata' => 1,
-                'data' => $new_data,
+                'data' => $data,
             ];
             return $this->respond($response, 200);
         } else {
-            return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
+            return $this->failNotFound('Maaf, data kelas ' . $nama_kelas . ' tidak ditemukan');
         }
     }
 

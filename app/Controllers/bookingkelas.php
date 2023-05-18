@@ -47,29 +47,32 @@ class bookingkelas extends BaseController
         $Modelbookingkelas = new Modelbookingkelas();
         $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
         jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
-            ->join('jadwal', 'bookingkelas.id_pegawai = pegawai.id_pegawai')
+            ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
+            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
-            ->join('kelas', 'bookingkelas.id_kelas = kelas.id_kelas')
+            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
             ->where('member.nama_member', $nama)
             ->get()
             ->getResult();
         if ($data) {
-            $total_deposit = 0;
+            // $total_deposit = 0;
             foreach ($data as $row) {
-                $total_deposit += $row->jumlah_deposit;
+                // $total_deposit += $row->jumlah_deposit;
+                unset($row->id_member, $row->id_jadwal);
             }
 
-            $new_data = [
-                'nama_member' => $data[0]->nama_member,
-                'total_deposit' => $total_deposit,
-            ];
+            // $new_data = [
+            //     'nama_member' => $data[0]->nama_member,
+            //     'total_deposit' => $total_deposit,
+            // ];
 
             $response = [
                 'status' => 200,
                 'error' => false,
                 'message' => '',
                 'totaldata' => 1,
-                'data' => $new_data,
+                'data' => $data,
             ];
             return $this->respond($response, 200);
         } else {
