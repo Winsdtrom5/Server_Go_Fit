@@ -86,14 +86,14 @@ class jadwalharian extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($hari = null, $nama = null, $jam = null)
+    public function show($nama = null, $hari = null, $jam = null)
     {
-        if ($nama == null && $jam == null) {
+        if ($jam == null && $hari != null) {
             $Modeljadwalharian = new Modeljadwalharian();
 
             $startOfWeek = date('Y-m-d', strtotime('monday this week'));
             $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
-            
+
             $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
                 ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
                 ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
@@ -103,11 +103,11 @@ class jadwalharian extends BaseController
                 ->where('jadwalharian.tanggal_kelas BETWEEN "' . $startOfWeek . '" AND "' . $endOfWeek . '"')
                 ->get()
                 ->getResult();
-            
+
             foreach ($data as &$row) {
                 unset($row->id_instruktur, $row->id_kelas, $row->jadwal);
             }
-            
+
             if ($data) {
                 $response = [
                     'status' => 200,
@@ -119,41 +119,74 @@ class jadwalharian extends BaseController
                 return $this->respond($response, 200);
             } else {
                 return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }            
-        } else {
-            $Modeljadwalumum = new Modeljadwalumum();
-            $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
-                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+            }
+        } else if ($hari == null && $jam == null) {
+            $Modeljadwalharian = new Modeljadwalharian();
+            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
                 ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->where('jadwalumum.hari', $hari)
+                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+                ->where('instruktur1.email', $nama)
                 ->get()
                 ->getResult();
 
-            $match = false;
-            $input_time = DateTime::createFromFormat('H:i', $jam);
-
-            foreach ($data as $row) {
-                if ($row->nama == $nama) {
-                    $existing_time = DateTime::createFromFormat('H:i', $row->jam);
-                    $end_time = clone $existing_time;
-                    $end_time->add(new DateInterval('PT2H'));
-
-                    if ($input_time >= $existing_time && $input_time <= $end_time) {
-                        $match = true;
-                        break;
-                    }
-                }
+            foreach ($data as &$row) {
+                unset($row->id_instruktur, $row->id_kelas, $row->jadwal);
             }
 
-            if ($match) {
+            if ($data) {
                 $response = [
                     'status' => 200,
                     'error' => false,
                     'message' => '',
                     'totaldata' => 1,
-                    'data' => $row,
+                    'data' => $data,
                 ];
                 return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+            }
+        } else {
+            $Modeljadwalharian = new Modeljadwalharian();
+            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+                ->where('jadwalumum.hari', $hari)
+                ->get()
+                ->getResult();
+
+            if (!empty($data)) {
+                $match = false;
+                $input_time = DateTime::createFromFormat('H:i:s', $jam);
+
+                foreach ($data as $row) {
+                    if ($row->nama == $nama) {
+                        $existing_time = DateTime::createFromFormat('H:i:s', $row->jam);
+                        $end_time = clone $existing_time;
+                        $end_time->add(new DateInterval('PT2H'));
+
+                        if ($input_time >= $existing_time && $input_time <= $end_time) {
+                            $match = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($match) {
+                    $response = [
+                        'status' => 200,
+                        'error' => false,
+                        'message' => '',
+                        'totaldata' => 1,
+                        'data' => $row,
+                    ];
+                    return $this->respond($response, 200);
+                } else {
+                    return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+                }
             } else {
                 return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
             }

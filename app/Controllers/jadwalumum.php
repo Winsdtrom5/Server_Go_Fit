@@ -48,41 +48,62 @@ class jadwalumum extends BaseController
 
     public function show($nama = null, $hari = null, $jam = null)
     {
-        $Modeljadwalumum = new Modeljadwalumum();
-        $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
+        if($hari == null&& $jam == null){
+            $Modeljadwalumum = new Modeljadwalumum();
+            $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
             ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
             ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->where('jadwalumum.hari', $hari)
+            ->where('instruktur.email', $nama)
             ->get()
             ->getResult();
-    
-        $match = false;
-        $input_time = DateTime::createFromFormat('H:i', $jam);
-    
-        foreach ($data as $row) {
-            if ($row->nama == $nama) {
-                $existing_time = DateTime::createFromFormat('H:i', $row->jam);
-                $end_time = clone $existing_time;
-                $end_time->add(new DateInterval('PT2H'));
-    
-                if ($input_time >= $existing_time && $input_time <= $end_time) {
-                    $match = true;
-                    break;
-                }
-            }
-        }
-    
-        if ($match) {
+
             $response = [
                 'status' => 200,
                 'error' => false,
                 'message' => '',
                 'totaldata' => 1,
-                'data' => $row,
+                'data' => $data,
             ];
             return $this->respond($response, 200);
-        } else {
-            return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+        }else if($jam == null){
+            
+        }else{
+            $Modeljadwalumum = new Modeljadwalumum();
+            $data = $Modeljadwalumum->select('jadwalumum.*, instruktur.nama , kelas.nama_kelas, kelas.tarif, TIME_FORMAT(jadwalumum.jam, "%H:%i") as jam')
+                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->where('jadwalumum.hari', $hari)
+                ->get()
+                ->getResult();
+        
+            $match = false;
+            $input_time = DateTime::createFromFormat('H:i', $jam);
+        
+            foreach ($data as $row) {
+                if ($row->nama == $nama) {
+                    $existing_time = DateTime::createFromFormat('H:i', $row->jam);
+                    $end_time = clone $existing_time;
+                    $end_time->add(new DateInterval('PT2H'));
+        
+                    if ($input_time >= $existing_time && $input_time <= $end_time) {
+                        $match = true;
+                        break;
+                    }
+                }
+            }
+        
+            if ($match) {
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $row,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
+            }
         }
     }
      

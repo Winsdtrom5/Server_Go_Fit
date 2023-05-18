@@ -29,7 +29,8 @@ class presensikelas extends BaseController
             ->findAll();
 
         foreach ($data as &$row) {
-            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'],$row['id_jadwal']);
+            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'],$row['id_jadwal']
+        ,$row['id_booking']);
         }
 
         $response = [

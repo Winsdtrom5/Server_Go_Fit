@@ -24,11 +24,11 @@ class bookingkelas extends BaseController
             ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
             ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')// First order by hari in ascending order// Then order by hari in ascending order
+            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur') // First order by hari in ascending order// Then order by hari in ascending order
             ->findAll();
 
         foreach ($data as &$row) {
-            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'],$row['id_jadwal']);
+            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'], $row['id_jadwal']);
         }
 
         $response = [
@@ -108,21 +108,36 @@ class bookingkelas extends BaseController
         }
         $id_kelas = $kelas['id_kelas'];
         $modeljadwalUmum = new Modeljadwalumum();
-        $jadwal = $modeljadwalUmum->where('id_kelas',$id_kelas)->where('jam',$jam)->first();
+        $jadwal = $modeljadwalUmum->where('id_kelas', $id_kelas)->where('jam', $jam)->first();
         $id_jadwal = $jadwal['id'];
         $modeljadwalHarian = new Modeljadwalharian();
-        $jadwalharian = $modeljadwalHarian->where('tanggal_kelas',$tanggal)->where('jadwal',$id_jadwal)->first();
+        $jadwalharian = $modeljadwalHarian->where('tanggal_kelas', $tanggal)->where('jadwal', $id_jadwal)->first();
         $id_jadwalharian = $jadwalharian['id'];
-        $Modelbookingkelas->insert([
-            'id_member' => $id_member,
-            'id_jadwal' => $id_jadwalharian
-        ]);
-        $response = [
-            'status' => 201,
-            'error' => "false",
-            'message' => "Done"
-        ];
-        return $this->respond($response, 201);
+        $newSisaPeserta = $jadwalharian['sisa_peserta'] - 1;  // Decrease sisa_peserta by 1 or update it according to your logic
+        $data = $modeljadwalHarian->find($id_jadwalharian);
+        $data['sisa_peserta'] = $newSisaPeserta;
+        $modeljadwalHarian->update($id_jadwalharian, $data);
+        $Modelbookingkelas = new Modelbookingkelas();
+        $check = $Modelbookingkelas->where('id_member',$id_member)->where('id_jadwal',$id_jadwalharian);
+        if($check){
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Sudah Booking Kelas Ini',
+            ];
+            return $this->respond($response, 200);
+        }else{
+            $Modelbookingkelas->insert([
+                'id_member' => $id_member,
+                'id_jadwal' => $id_jadwalharian
+            ]);
+            $response = [
+                'status' => 201,
+                'error' => "false",
+                'message' => $newSisaPeserta
+            ];
+            return $this->respond($response, 201);
+        }
     }
 
     public function update($id = null)

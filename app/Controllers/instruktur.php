@@ -38,7 +38,6 @@ class instruktur extends BaseController
         foreach ($data as &$row) {
             $row['password'] = $encryption->decrypt(hex2bin($row['password']));
         }
-
         $response = [
             'status' => 200,
             'error' => "false",
@@ -50,49 +49,24 @@ class instruktur extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null, $password = null, $category = null)
+    public function show($nama = null, $password = null)
     {
-        if ($category == "forgot") {
-            $Modelinstruktur = new Modelinstruktur();
-            $data = $Modelinstruktur->where('nama', $nama)->get()->getResult();
-            if (count($data) > 1) {
-                $response = [
-                    'status' => 200,
-                    'error' => "false",
-                    'message' => '',
-                    'totaldata' => count($data),
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else if (count($data) == 1) {
-                $response = [
-                    'status' => 200,
-                    'error' => "false",
-                    'message' => '',
-                    'totaldata' => count($data),
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('maaf data ' . $nama .
-                    ' tidak ditemukan');
-            }
+        $encryption = \Config\Services::encrypter();
+        $Modelmember = new Modelinstruktur();
+        $data = $Modelmember->where('email', $nama)->get()->getRow();
+        $passworddecrypt = $encryption->decrypt(hex2bin($data->password));
+        if ($data && $password == $passworddecrypt) {
+            // $encryption->decrypt(hex2bin($data->tanggal_lahir)
+            $response = [
+                'status' => 200,
+                'error' => false,
+                'message' => '',
+                'totaldata' => 1,
+                'data' => $data,
+            ];
+            return $this->respond($response, 200);
         } else {
-            $encryption = \Config\Services::encrypter();
-            $Modelinstruktur = new Modelinstruktur();
-            $data = $Modelinstruktur->where('nama', $nama)->get()->getRow();
-            if ($data && password_verify($password, $data['password'])) {
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }
+            return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
         }
     }
 
@@ -131,7 +105,7 @@ class instruktur extends BaseController
                 'error' => null,
                 'message' => $data['keterlambatan'],
             ];
-            return $this->respond($response, 201);        
+            return $this->respond($response, 201);
         } else {
             $model = new Modelinstruktur();
             $data = $this->request->getJSON(true);
