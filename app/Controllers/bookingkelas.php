@@ -19,7 +19,7 @@ class bookingkelas extends BaseController
     {
         $Modelbookingkelas = new Modelbookingkelas();
         $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
             ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
@@ -46,7 +46,7 @@ class bookingkelas extends BaseController
     {
         $Modelbookingkelas = new Modelbookingkelas();
         $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-        jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+        jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
             ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
@@ -88,6 +88,7 @@ class bookingkelas extends BaseController
         $nama_kelas = $this->request->getPost("nama_kelas");
         $tanggal = $this->request->getPost("tanggal");
         $jam = $this->request->getPost("jam");
+        $jenis = $this->request->getPost("jenis");
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
         if ($member === null) {
@@ -110,6 +111,7 @@ class bookingkelas extends BaseController
             return $this->respond($response, 200);
         }
         $id_kelas = $kelas['id_kelas'];
+        $tarif = $kelas['tarif'];
         $modeljadwalUmum = new Modeljadwalumum();
         $jadwal = $modeljadwalUmum->where('id_kelas', $id_kelas)->where('jam', $jam)->first();
         $id_jadwal = $jadwal['id'];
@@ -130,10 +132,21 @@ class bookingkelas extends BaseController
             ];
             return $this->respond($response, 200);
         }else{
-            $Modelbookingkelas->insert([
-                'id_member' => $id_member,
-                'id_jadwal' => $id_jadwalharian
-            ]);
+            if($jenis == null){
+                $datamember = $Modelmember->find($id_member);
+                $newSisaDeposit = $datamember['deposit_uang'] - $tarif;
+                $data['deposituang'] = $newSisaDeposit;
+                $Modelbookingkelas->insert([
+                    'id_member' => $id_member,
+                    'id_jadwal' => $id_jadwalharian
+                ]);
+            }else{
+                $Modelbookingkelas->insert([
+                    'id_member' => $id_member,
+                    'id_jadwal' => $id_jadwalharian,
+                    'jenis' => $jenis
+                ]);
+            }  
             $response = [
                 'status' => 201,
                 'error' => "false",
@@ -156,5 +169,37 @@ class bookingkelas extends BaseController
             'message' => "Done"
         ];
         return $this->respond($response, 201);
+    }
+
+    public function delete($id)
+    {
+        $Modelbooking = new Modelbookingkelas();
+        $cekData = $Modelbooking->find($id);
+        if ($cekData) {
+            if($cekData->jenis == null){
+                $modelmember = new Modelmember();
+                $modelkelas = new Modelkelas();
+                $member = $modelmember->find($cekData->id_member);
+                $kelas = $modelkelas -> find($cekData->id_kelas);
+                $newSisaDeposit = $member['deposit_uang'] + $kelas['tarif']; 
+                $member['deposit_uang'] = $newSisaDeposit;
+                $modelmember->update($cekData->id_member, $member);
+            }else{
+                $modelmember = new Modelmember();
+                $member = $modelmember->find($cekData->id_member);
+                $newSisaDeposit = $member['deposit_kelas'] + 1; 
+                $member['deposit_kelas'] = $newSisaDeposit;
+                $modelmember->update($cekData->id_member, $member);
+            }
+            $Modelbooking->delete($id);
+            $response = [
+                'status' => 200,
+                'error' => null,
+                'message' => "Selamat data sudah berhasil dihapus maksimal"
+            ];
+            return $this->respondDeleted($response);
+        } else {
+            return $this->failNotFound('Data tidak ditemukan kembali');
+        }
     }
 }

@@ -19,7 +19,7 @@ class presensikelas extends BaseController
     {
         $Modelpresensikelas = new Modelpresensikelas();
         $data = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,bookingkelas.jenis')
             ->join('bookingkelas','presensi_kelas.id_booking = bookingkelas.id')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
             ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
@@ -29,8 +29,7 @@ class presensikelas extends BaseController
             ->findAll();
 
         foreach ($data as &$row) {
-            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'],$row['id_jadwal']
-        ,$row['id_booking']);
+            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'],$row['id_jadwal']);
         }
 
         $response = [
@@ -48,7 +47,7 @@ class presensikelas extends BaseController
     {
         $Modelpresensikelas = new Modelpresensikelas();
         $data = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member')
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,bookingkelas.jenis')
             ->join('bookingkelas', 'presensi_kelas.id_booking = bookingkelas.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')

@@ -45,6 +45,8 @@ $routes->resource('deposituang', ['filter' => 'cors']);
 $routes->resource('izininstruktur', ['filter' => 'cors']);
 $routes->resource('bookingkelas', ['filter' => 'cors']);
 $routes->resource('presensikelas', ['filter' => 'cors']);
+$routes->resource('bookinggym', ['filter' => 'cors']);
+$routes->resource('presensigym', ['filter' => 'cors']);
 // $routes->get('member/(:num)', 'Member::showmember/$1', ['filter' => 'cors']);
 // $routes->get('login', 'Login::index');
 /*

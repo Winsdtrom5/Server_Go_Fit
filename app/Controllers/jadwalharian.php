@@ -6,7 +6,6 @@ use CodeIgniter\API\ResponseTrait;
 use App\Models\Modeljadwalharian;
 use App\Models\Modeljadwalumum;
 use App\Models\Modelinstruktur;
-use App\Models\Modelkelas;
 use App\Controllers\BaseController;
 use DateInterval;
 use DateTime;
