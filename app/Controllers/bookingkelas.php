@@ -42,41 +42,68 @@ class bookingkelas extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null)
+    public function show($nama = null, $nama_kelas = null, $tanggal = null)
     {
-        $Modelbookingkelas = new Modelbookingkelas();
-        $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-        jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
-            ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
-            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-            ->join('member', 'bookingkelas.id_member = member.id_member')
-            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
-            ->where('member.nama_member', $nama)
-            ->get()
-            ->getResult();
-        if ($data) {
-            // $total_deposit = 0;
-            foreach ($data as $row) {
-                // $total_deposit += $row->jumlah_deposit;
-                unset($row->id_member, $row->id_jadwal);
+        if ($nama_kelas == null && $tanggal == null) {
+            $Modelbookingkelas = new Modelbookingkelas();
+            $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
+                ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('member', 'bookingkelas.id_member = member.id_member')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+                ->where('member.nama_member', $nama)
+                ->get()
+                ->getResult();
+            if ($data) {
+                foreach ($data as $row) {
+                    // $total_deposit += $row->jumlah_deposit;
+                    unset($row->id_member, $row->id_jadwal);
+                }
+
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $data,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
             }
-
-            // $new_data = [
-            //     'nama_member' => $data[0]->nama_member,
-            //     'total_deposit' => $total_deposit,
-            // ];
-
-            $response = [
-                'status' => 200,
-                'error' => false,
-                'message' => '',
-                'totaldata' => 1,
-                'data' => $data,
-            ];
-            return $this->respond($response, 200);
         } else {
-            return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
+            $Modelbookingkelas = new Modelbookingkelas();
+            $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
+            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
+                ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
+                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+                ->join('member', 'bookingkelas.id_member = member.id_member')
+                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
+                ->where('instruktur.email',$nama)
+                ->where('kelas.nama_kelas', $nama_kelas)
+                ->where('jadwalharian.tanggal_kelas', $tanggal)
+                ->get()
+                ->getResult();
+            if ($data) {
+                foreach ($data as $row) {
+                    // $total_deposit += $row->jumlah_deposit;
+                    unset($row->id_member, $row->id_jadwal);
+                }
+
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $data,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
+            }
         }
     }
 
@@ -89,6 +116,7 @@ class bookingkelas extends BaseController
         $tanggal = $this->request->getPost("tanggal");
         $jam = $this->request->getPost("jam");
         $jenis = $this->request->getPost("jenis");
+
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
         if ($member === null) {
@@ -100,6 +128,7 @@ class bookingkelas extends BaseController
             return $this->respond($response, 200);
         }
         $id_member = $member['id_member'];
+
         $Modelkelas = new Modelkelas();
         $kelas = $Modelkelas->where('nama_kelas', $nama_kelas)->first();
         if ($kelas === null) {
@@ -111,49 +140,51 @@ class bookingkelas extends BaseController
             return $this->respond($response, 200);
         }
         $id_kelas = $kelas['id_kelas'];
-        $tarif = $kelas['tarif'];
+
         $modeljadwalUmum = new Modeljadwalumum();
         $jadwal = $modeljadwalUmum->where('id_kelas', $id_kelas)->where('jam', $jam)->first();
         $id_jadwal = $jadwal['id'];
         $modeljadwalHarian = new Modeljadwalharian();
         $jadwalharian = $modeljadwalHarian->where('tanggal_kelas', $tanggal)->where('jadwal', $id_jadwal)->first();
+        if ($jadwalharian === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Jadwal harian tidak ditemukan.',
+            ];
+            return $this->respond($response, 200);
+        }
+
         $id_jadwalharian = $jadwalharian['id'];
-        $newSisaPeserta = $jadwalharian['sisa_peserta'] - 1;  // Decrease sisa_peserta by 1 or update it according to your logic
+        $newSisaPeserta = $jadwalharian['sisa_peserta'] - 1;
+
         $data = $modeljadwalHarian->find($id_jadwalharian);
         $data['sisa_peserta'] = $newSisaPeserta;
         $modeljadwalHarian->update($id_jadwalharian, $data);
+
         $Modelbookingkelas = new Modelbookingkelas();
-        $check = $Modelbookingkelas->where('id_member',$id_member)->where('id_jadwal',$id_jadwalharian);
-        if($check){
+        $check = $Modelbookingkelas->where('id_member', $id_member)->where('id_jadwal', $id_jadwalharian)->first();
+        if ($check) {
             $response = [
                 'status' => 200,
                 'error' => "true",
                 'message' => 'Sudah Booking Kelas Ini',
             ];
             return $this->respond($response, 200);
-        }else{
-            if($jenis == null){
-                $datamember = $Modelmember->find($id_member);
-                $newSisaDeposit = $datamember['deposit_uang'] - $tarif;
-                $data['deposituang'] = $newSisaDeposit;
-                $Modelbookingkelas->insert([
-                    'id_member' => $id_member,
-                    'id_jadwal' => $id_jadwalharian
-                ]);
-            }else{
-                $Modelbookingkelas->insert([
-                    'id_member' => $id_member,
-                    'id_jadwal' => $id_jadwalharian,
-                    'jenis' => $jenis
-                ]);
-            }  
-            $response = [
-                'status' => 201,
-                'error' => "false",
-                'message' => $newSisaPeserta
-            ];
-            return $this->respond($response, 201);
+        } else {
+            $Modelbookingkelas->insert([
+                'id_member' => $id_member,
+                'id_jadwal' => $id_jadwalharian,
+                'jenis' => $jenis
+            ]);
         }
+
+        $response = [
+            'status' => 201,
+            'error' => "false",
+            'message' => $newSisaPeserta
+        ];
+        return $this->respond($response, 201);
     }
 
     public function update($id = null)
@@ -176,18 +207,18 @@ class bookingkelas extends BaseController
         $Modelbooking = new Modelbookingkelas();
         $cekData = $Modelbooking->find($id);
         if ($cekData) {
-            if($cekData->jenis == null){
+            if ($cekData->jenis == null) {
                 $modelmember = new Modelmember();
                 $modelkelas = new Modelkelas();
                 $member = $modelmember->find($cekData->id_member);
-                $kelas = $modelkelas -> find($cekData->id_kelas);
-                $newSisaDeposit = $member['deposit_uang'] + $kelas['tarif']; 
+                $kelas = $modelkelas->find($cekData->id_kelas);
+                $newSisaDeposit = $member['deposit_uang'] + $kelas['tarif'];
                 $member['deposit_uang'] = $newSisaDeposit;
                 $modelmember->update($cekData->id_member, $member);
-            }else{
+            } else {
                 $modelmember = new Modelmember();
                 $member = $modelmember->find($cekData->id_member);
-                $newSisaDeposit = $member['deposit_kelas'] + 1; 
+                $newSisaDeposit = $member['deposit_kelas'] + 1;
                 $member['deposit_kelas'] = $newSisaDeposit;
                 $modelmember->update($cekData->id_member, $member);
             }

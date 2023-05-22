@@ -60,16 +60,6 @@ class presensikelas extends BaseController
             ->get()
             ->getResult();
         if ($data) {
-            // $total_deposit = 0;
-            // foreach ($data as $row) {
-            //     $total_deposit += $row->jumlah_deposit;
-            // }
-
-            // $new_data = [
-            //     'nama_member' => $data[0]->nama_member,
-            //     'total_deposit' => $total_deposit,
-            // ];
-
             $response = [
                 'status' => 200,
                 'error' => false,
@@ -116,6 +106,14 @@ class presensikelas extends BaseController
         $id_kelas = $kelas['id_kelas'];
         $modeljadwalUmum = new Modeljadwalumum();
         $jadwal = $modeljadwalUmum->where('id_kelas',$id_kelas)->where('jam',$jam)->first();
+        if ($jadwal === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => $jam,
+            ];
+            return $this->respond($response, 200);
+        }
         $id_jadwal = $jadwal['id'];
         $modeljadwalHarian = new Modeljadwalharian();
         $jadwalharian = $modeljadwalHarian->where('tanggal_kelas',$tanggal)->where('jadwal',$id_jadwal)->first();
@@ -139,8 +137,8 @@ class presensikelas extends BaseController
     {
         $model = new Modelpresensikelas();
         $data = $this->request->getJSON(true);
-        $jumlah_deposit = $this->request->getVar("jumlah_deposit");
-        $data['id_pegawai'] = $jumlah_deposit;
+        $status = $this->request->getVar("status");
+        $data['status'] = $status;
         $model->update($id, $data);
         $response = [
             'status' => 200,

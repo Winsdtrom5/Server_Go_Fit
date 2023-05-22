@@ -85,7 +85,7 @@ class jadwalharian extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null, $hari = null, $jam = null)
+    public function show($nama = null, $hari = null, $jam = null,$tanggal_kelas = null)
     {
         if ($jam == null && $hari != null) {
             $Modeljadwalharian = new Modeljadwalharian();
@@ -119,7 +119,7 @@ class jadwalharian extends BaseController
             } else {
                 return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
             }
-        } else if ($hari == null && $jam == null) {
+        } else if ($hari == null && $jam == null && $tanggal_kelas ==null) {
             $Modeljadwalharian = new Modeljadwalharian();
             $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
                 ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
@@ -154,41 +154,24 @@ class jadwalharian extends BaseController
                 ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
                 ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
                 ->where('jadwalumum.hari', $hari)
+                ->where('jadwalharian.tanggal_kelas',$tanggal_kelas)
+                ->where('instruktur1.nama', $nama)
+                ->where('jadwalumum.jam', $jam)
                 ->get()
                 ->getResult();
 
-            if (!empty($data)) {
-                $match = false;
-                $input_time = DateTime::createFromFormat('H:i:s', $jam);
-
-                foreach ($data as $row) {
-                    if ($row->nama == $nama) {
-                        $existing_time = DateTime::createFromFormat('H:i:s', $row->jam);
-                        $end_time = clone $existing_time;
-                        $end_time->add(new DateInterval('PT2H'));
-
-                        if ($input_time >= $existing_time && $input_time <= $end_time) {
-                            $match = true;
-                            break;
-                        }
-                    }
-                }
-
-                if ($match) {
+                if ($data) {
                     $response = [
                         'status' => 200,
                         'error' => false,
                         'message' => '',
                         'totaldata' => 1,
-                        'data' => $row,
+                        'data' => $data,
                     ];
                     return $this->respond($response, 200);
                 } else {
                     return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
                 }
-            } else {
-                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }
         }
     }
 
