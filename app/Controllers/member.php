@@ -148,12 +148,12 @@ class member extends BaseController
         $status = $this->request->getPost("status");
 
         // Retrieve the uploaded file
-        // $profile_picture = $this->request->getFile("profile_picture");
+        $profile_picture = $this->request->getFile("profile_picture");
 
-        // // Move the uploaded file to a new location
-        // $new_path = WRITEPATH . 'uploads/profile_pictures/';
-        // $new_name = $profile_picture->getRandomName();
-        // $profile_picture->move($new_path, $new_name);
+        // Move the uploaded file to a new location
+        $new_path = WRITEPATH . 'uploads/profile_pictures/';
+        $new_name = $profile_picture->getRandomName();
+        $profile_picture->move($new_path, $new_name);
 
         // Save the new member record to the database
         $modelmember->insert([

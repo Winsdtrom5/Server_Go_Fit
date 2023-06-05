@@ -6,107 +6,82 @@ use CodeIgniter\API\ResponseTrait;
 use App\Models\Modelmember;
 use App\Models\Modeljadwalharian;
 use App\Models\Modeljadwalumum;
+use App\Models\Modelbookingkelas;
 use App\Models\Modelkelas;
 use App\Controllers\BaseController;
-use App\Models\Modelbookingkelas;
+use App\Models\Modelbookinggym;
+use App\Models\Modelpresensigym;
+use App\Models\Modelpresensikelas;
 use DateTime;
 
-class bookingkelas extends BaseController
+class aktivitasgym extends BaseController
 {
     use ResponseTrait;
 
     public function index()
     {
-        $Modelbookingkelas = new Modelbookingkelas();
-        $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
-            ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
-            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-            ->join('member', 'bookingkelas.id_member = member.id_member')
-            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-            ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur') // First order by hari in ascending order// Then order by hari in ascending order
-            ->findAll();
-
-        foreach ($data as &$row) {
-            unset($row['id_pegawai'], $row['id_promo'], $row['id_member'], $row['id_jadwal']);
-        }
-
-        $response = [
-            'status' => 200,
-            'error' => "false",
-            'message' => '',
-            'totaldata' => count($data),
-            'data' => $data,
-        ];
-
-        return $this->respond($response, 200);
     }
 
-    public function show($nama = null, $nama_kelas = null, $tanggal = null)
+    public function show($bulan = null, $tahun = null)
     {
-        if ($nama_kelas == null && $tanggal == null) {
-            $Modelbookingkelas = new Modelbookingkelas();
-            $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
-                ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('member', 'bookingkelas.id_member = member.id_member')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
-                ->where('member.nama_member', $nama)
-                ->get()
-                ->getResult();
-            if ($data) {
-                foreach ($data as $row) {
-                    // $total_deposit += $row->jumlah_deposit;
-                    unset($row->id_member, $row->id_jadwal);
-                }
+        $Modelbookinggym = new Modelbookinggym();
+        $Modelpresensigym = new Modelpresensigym();
+        $monthMapping = [
+            'januari' => '01',
+            'februari' => '02',
+            'maret' => '03',
+            'april' => '04',
+            'mei' => '05',
+            'juni' => '06',
+            'juli' => '07',
+            'agustus' => '08',
+            'september' => '09',
+            'oktober' => '10',
+            'november' => '11',
+            'desember' => '12',
+        ];
+        $numericMonth = isset($monthMapping[strtolower($bulan)]) ? $monthMapping[strtolower($bulan)] : null;
+        $data = $Modelbookinggym->select('bookinggym.*,member.nama_member')
+            ->join('member', 'bookinggym.id_member = member.id_member')
+            ->where('MONTH(bookinggym.tanggal)', $numericMonth)
+            ->where('YEAR(bookinggym.tanggal)', $tahun)
+            ->get()
+            ->getResult();
 
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
+        if ($data) {
+            $filteredKelasData = [];
+            foreach ($data as $jadwal) {
+                $namamember = $jadwal->nama_member;
+                $tanggal = $jadwal->tanggal;
+                $jadwalMonth = date('m', strtotime($tanggal));
+
+                if ($jadwalMonth === $numericMonth) {
+                    $jumlahPeserta = $Modelpresensigym
+                        ->select('COUNT(DISTINCT(presensi_gym.id_booking)) AS jumlah_peserta')
+                        ->join('bookinggym', 'presensi_gym.id_booking = bookinggym.id')
+                        ->join('member', 'bookinggym.id_member = member.id_member')
+                        ->where('member.nama_member', $namamember)
+                        ->where('bookinggym.tanggal', $tanggal)
+                        ->countAllResults();
+                    $filteredKelasData[$namamember] = [
+                        'tanggal' => $tanggal,
+                        'jumlahMember' => $jumlahPeserta,
+                    ];
+                }
             }
+
+            $response = [
+                'status' => 200,
+                'error' => false,
+                'message' => '',
+                'totaldata' => count($filteredKelasData),
+                'data' => array_values($filteredKelasData),
+            ];
+            return $this->respond($response, 200);
         } else {
-            $Modelbookingkelas = new Modelbookingkelas();
-            $data = $Modelbookingkelas->select('bookingkelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,kelas.tarif')
-                ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('member', 'bookingkelas.id_member = member.id_member')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur', 'jadwalumum.id_instruktur = instruktur.id_instruktur')
-                ->where('instruktur.email',$nama)
-                ->where('kelas.nama_kelas', $nama_kelas)
-                ->where('jadwalharian.tanggal_kelas', $tanggal)
-                ->get()
-                ->getResult();
-            if ($data) {
-                foreach ($data as $row) {
-                    // $total_deposit += $row->jumlah_deposit;
-                    unset($row->id_member, $row->id_jadwal);
-                }
-
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data kelas ' . $nama . ' tidak ditemukan');
-            }
+            return $this->failNotFound('Maaf, data tidak ditemukan');
         }
     }
-
 
     public function create()
     {
@@ -168,13 +143,13 @@ class bookingkelas extends BaseController
             ];
             return $this->respond($response, 200);
         } else {
-            if($jenis == "reguler"){
+            if ($jenis == "reguler") {
                 $data = $Modelmember->find($id_member);
                 $data2 = $modeljadwalUmum->find($id_jadwal);
                 $sisa_deposit = $data['deposit_uang'] - $data2['tarif'];
                 $data['deposit_uang'] = $sisa_deposit;
                 $Modelmember->update($id_member, $data);
-            }else{
+            } else {
                 $data = $Modelmember->find($id_member);
                 $sisa_deposit = $data['deposit_kelas'] - 1;
                 $data['deposit_kelas'] = $sisa_deposit;

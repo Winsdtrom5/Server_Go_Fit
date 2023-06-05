@@ -47,6 +47,8 @@ $routes->resource('bookingkelas', ['filter' => 'cors']);
 $routes->resource('presensikelas', ['filter' => 'cors']);
 $routes->resource('bookinggym', ['filter' => 'cors']);
 $routes->resource('presensigym', ['filter' => 'cors']);
+$routes->resource('aktivitaskelas', ['filter' => 'cors']);
+$routes->resource('aktivitasgym', ['filter' => 'cors']);
 // $routes->get('member/(:num)', 'Member::showmember/$1', ['filter' => 'cors']);
 // $routes->get('login', 'Login::index');
 /*
