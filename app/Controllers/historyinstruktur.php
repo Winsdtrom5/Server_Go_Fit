@@ -5,12 +5,13 @@ namespace App\Controllers;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\Modeljadwalharian;
 use App\Models\Modeljadwalumum;
+use App\Models\Modelpresensiinstruktur;
 use App\Models\Modelinstruktur;
 use App\Controllers\BaseController;
 use DateInterval;
 use DateTime;
 
-class jadwalharian extends BaseController
+class historyinstruktur extends BaseController
 {
     use ResponseTrait;
     private $encrypt;
@@ -60,6 +61,9 @@ class jadwalharian extends BaseController
         });
 
         foreach ($data as &$row) {
+            if ($row['instruktur_pengganti'] != null) {
+                $row['nama'] = $row['instruktur_pengganti'];
+            }
             $row['id_instruktur'] = $row['nama'];
             $row['id_kelas'] = $row['nama_kelas'];
             $row['hari'] = $row['hari'];
@@ -85,131 +89,31 @@ class jadwalharian extends BaseController
         return $this->respond($response, 200);
     }
 
-    public function show($nama = null, $hari = null, $jam = null, $tanggal_kelas = null, $jenis = null)
+    public function show($nama = null)
     {
-        if ($jam == null && $hari != null) {
-            $Modeljadwalharian = new Modeljadwalharian();
+        $Modelpresensiinstruktur = new Modelpresensiinstruktur();
+        $data = $Modelpresensiinstruktur->select('presensi_instruktur.*,jadwalharian.*, jadwalumum.hari, jadwalumum.jam, IF(instruktur2.nama IS NOT NULL, instruktur2.nama, instruktur1.nama) as instruktur, kelas.nama_kelas')
+            ->join('jadwalharian', 'presensi_instruktur.id_jadwal = jadwalharian.id')
+            ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
+            ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
+            ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
+            ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
+            ->where('instruktur1.nama', $nama)
+            ->orWhere('instruktur2.nama', $nama)
+            ->get()
+            ->getResult();
 
-            $startOfWeek = date('Y-m-d', strtotime('monday this week'));
-            $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
-
-            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                ->where('jadwalumum.hari', $hari)
-                ->where('jadwalharian.tanggal_kelas BETWEEN "' . $startOfWeek . '" AND "' . $endOfWeek . '"')
-                ->get()
-                ->getResult();
-
-            foreach ($data as &$row) {
-                if ($row['instruktur_pengganti'] != null) {
-                    $row['nama'] = $row['instruktur_pengganti'];
-                }
-                unset($row->id_instruktur, $row->id_kelas, $row->jadwal);
-            }
-
-            if ($data) {
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }
-        } else if ($hari == null && $jam == null && $tanggal_kelas == null) {
-            $Modeljadwalharian = new Modeljadwalharian();
-            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, instruktur1.nama, instruktur2.nama as instruktur_pengganti, kelas.nama_kelas, kelas.tarif')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                ->where('instruktur1.email', $nama)
-                ->get()
-                ->getResult();
-
-            foreach ($data as &$row) {
-                if ($row['instruktur_pengganti'] != null) {
-                    $row['nama'] = $row['instruktur_pengganti'];
-                }
-                unset($row->id_instruktur, $row->id_kelas, $row->jadwal);
-            }
-
-            if ($data) {
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }
-        } else if ($jenis == 'showall') {
-            $Modeljadwalharian = new Modeljadwalharian();
-            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, IF(instruktur2.nama IS NOT NULL, instruktur2.nama, instruktur1.nama) as nama, kelas.nama_kelas, kelas.tarif')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                ->findAll();
-            foreach ($data as &$row) {
-                $row['id_instruktur'] = $row['nama'];
-                $row['id_kelas'] = $row['nama_kelas'];
-                $row['hari'] = $row['hari'];
-                $date = new DateTime($row['tanggal_kelas']);
-                $datestring = $date->format('d M Y');
-                $datestring = str_replace(
-                    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                    $datestring
-                );
-                $row['tanggal_kelas'] = $datestring;
-                unset($row['id_instruktur'], $row['id_kelas'], $row['jadwal']);
-            }
+        if ($data) {
             $response = [
                 'status' => 200,
-                'error' => "false",
+                'error' => false,
                 'message' => '',
                 'totaldata' => count($data),
                 'data' => $data,
             ];
-    
-            return $this->respond($response, 200);  
+            return $this->respond($response, 200);
         } else {
-            $Modeljadwalharian = new Modeljadwalharian();
-            $data = $Modeljadwalharian->select('jadwalharian.*, jadwalumum.hari, jadwalumum.jam, IF(instruktur2.nama IS NOT NULL, instruktur2.nama, instruktur1.nama) as nama, kelas.nama_kelas, kelas.tarif')
-                ->join('jadwalumum', 'jadwalharian.jadwal = jadwalumum.id')
-                ->join('instruktur as instruktur1', 'jadwalumum.id_instruktur = instruktur1.id_instruktur')
-                ->join('kelas', 'jadwalumum.id_kelas = kelas.id_kelas')
-                ->join('instruktur as instruktur2', 'jadwalharian.id_instruktur = instruktur2.id_instruktur', 'left')
-                ->where('jadwalumum.hari', $hari)
-                ->where('jadwalharian.tanggal_kelas', $tanggal_kelas)
-                ->where('jadwalumum.jam', $jam)
-                ->where('instruktur1.nama', $nama)
-                ->orWhere('instruktur2.nama', $nama)
-                ->get()
-                ->getResult();
-
-            if ($data) {
-                $response = [
-                    'status' => 200,
-                    'error' => false,
-                    'message' => '',
-                    'totaldata' => 1,
-                    'data' => $data,
-                ];
-                return $this->respond($response, 200);
-            } else {
-                return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
-            }
+            return $this->failNotFound('Maaf, data ' . $nama . ' tidak ditemukan atau password salah');
         }
     }
 

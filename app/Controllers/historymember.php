@@ -10,9 +10,10 @@ use App\Models\Modelkelas;
 use App\Controllers\BaseController;
 use App\Models\Modelbookingkelas;
 use App\Models\Modelpresensikelas;
+use App\Models\Modelpresensigym;
 use DateTime;
 
-class presensikelas extends BaseController
+class historymember extends BaseController
 {
     use ResponseTrait;
     public function index()
@@ -46,8 +47,7 @@ class presensikelas extends BaseController
     public function show($nama_member)
     {
         $Modelpresensikelas = new Modelpresensikelas();
-        $data = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas,jadwalumum.jam,
-            jadwalumum.jam,kelas.nama_kelas,instruktur.nama,member.nama_member,bookingkelas.jenis')
+        $datakelas = $Modelpresensikelas->select('presensi_kelas.*, jadwalharian.tanggal_kelas, jadwalumum.jam, kelas.nama_kelas, instruktur.nama, member.nama_member, bookingkelas.jenis')
             ->join('bookingkelas', 'presensi_kelas.id_booking = bookingkelas.id')
             ->join('member', 'bookingkelas.id_member = member.id_member')
             ->join('jadwalharian', 'bookingkelas.id_jadwal = jadwalharian.id')
@@ -57,18 +57,24 @@ class presensikelas extends BaseController
             ->where('member.nama_member', $nama_member)
             ->get()
             ->getResult();
-        if ($data) {
-            $response = [
-                'status' => 200,
-                'error' => false,
-                'message' => '',
-                'totaldata' => 1,
-                'data' => $data,
-            ];
-            return $this->respond($response, 200);
-        } else {
-            return $this->failNotFound('Maaf, data kelas ' . $nama_member . ' tidak ditemukan');
-        }
+        
+        $Modelpresensigym = new Modelpresensigym();
+        $datagym = $Modelpresensigym->select('presensi_gym.*, bookinggym.*, member.nama_member')
+            ->join('bookinggym', 'presensi_gym.id_booking = bookinggym.id')
+            ->join('member', 'bookinggym.id_member = member.id_member')
+            ->where('member.nama_member', $nama_member)
+            ->get()
+            ->getResult();
+        
+        $response = [
+            'status' => 200,
+            'error' => false,
+            'message' => '',
+            'totaldata' => count($datakelas) + count($datagym),
+            'data' => array_merge($datakelas, $datagym),
+        ];
+        
+        return $this->respond($response, 200);        
     }
 
 

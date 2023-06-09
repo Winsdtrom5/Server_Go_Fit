@@ -9,12 +9,12 @@ use App\Models\Modeljadwalumum;
 use App\Models\Modelbookingkelas;
 use App\Models\Modelkelas;
 use App\Controllers\BaseController;
-use App\Models\Modelbookinggym;
-use App\Models\Modelpresensigym;
-use App\Models\Modelpresensikelas;
+use App\Models\Modelaktivasi;
+use App\Models\Modeldeposituang;
+use App\Models\Modeldepositkelas;
 use DateTime;
 
-class aktivitasgym extends BaseController
+class pendapatan extends BaseController
 {
     use ResponseTrait;
 
@@ -24,50 +24,79 @@ class aktivitasgym extends BaseController
 
     public function show($tahun = null)
     {
-        $Modelbookinggym = new Modelbookinggym();
-        $Modelpresensigym = new Modelpresensigym();
-        
-        $data = $Modelbookinggym
-            ->select('bookinggym.*, member.nama_member')
-            ->join('member', 'bookinggym.id_member = member.id_member')
-            ->where('YEAR(bookinggym.tanggal)', $tahun);
+        $Modeldepositkelas = new Modeldepositkelas();
+        $Modeldeposituang = new Modeldeposituang();
+        $Modelaktivasi = new Modelaktivasi();
 
-        $data = $data->get()->getResult();
+        $depositkelasData = $Modeldepositkelas->findAll();
+        $deposituangData = $Modeldeposituang->findAll();
+        $aktivasidata = $Modelaktivasi->findAll();
 
-        if ($data) {
-            $filteredKelasData = [];
-            foreach ($data as $jadwal) {
-                $namamember = $jadwal->nama_member;
-                $tanggal = $jadwal->tanggal;
-                $jadwalMonth = date('m', strtotime($tanggal));
+        if ($tahun === null) {
+            return $this->failNotFound('Tahun harus diisi');
+        }
 
-                if ($numericMonth === null || $jadwalMonth === $numericMonth) {
-                    $jumlahPeserta = $Modelpresensigym
-                        ->select('COUNT(DISTINCT(presensi_gym.id_booking)) AS jumlah_peserta')
-                        ->join('bookinggym', 'presensi_gym.id_booking = bookinggym.id')
-                        ->join('member', 'bookinggym.id_member = member.id_member')
-                        ->where('member.nama_member', $namamember)
-                        ->where('bookinggym.tanggal', $tanggal)
-                        ->countAllResults();
-                    $filteredKelasData[$namamember] = [
-                        'tanggal' => $tanggal,
-                        'jumlahMember' => $jumlahPeserta,
-                    ];
+        $filteredData = [];
+        $totalDeposit = 0;
+        $totalAktivasi = 0;
+        $total = 0;
+
+        for ($bulan = 1; $bulan <= 12; $bulan++) {
+            foreach ($aktivasidata as $aktivasiItem) {
+                $aktivasiMonth = date('m', strtotime($aktivasiItem['tanggal']));
+                $aktivasiYear = date('Y', strtotime($aktivasiItem['tanggal']));
+
+                if ($aktivasiMonth == $bulan && $aktivasiYear == $tahun) {
+                    $totalAktivasi += $aktivasiItem['harga'];
                 }
             }
 
-            $response = [
-                'status' => 200,
-                'error' => false,
-                'message' => '',
-                'totaldata' => count($filteredKelasData),
-                'data' => array_values($filteredKelasData),
+            foreach ($deposituangData as $deposituangItem) {
+                $deposituangMonth = date('m', strtotime($deposituangItem['tanggal']));
+                $deposituangYear = date('Y', strtotime($deposituangItem['tanggal']));
+
+                if ($deposituangMonth == $bulan && $deposituangYear == $tahun) {
+                    $totalDeposit += $deposituangItem['harga'];
+                }
+            }
+
+            foreach ($depositkelasData as $depositkelasItem) {
+                $depositkelasMonth = date('m', strtotime($depositkelasItem['tanggal']));
+                $depositkelasYear = date('Y', strtotime($depositkelasItem['tanggal']));
+
+                if ($depositkelasMonth == $bulan && $depositkelasYear == $tahun) {
+                    $totalDeposit += $depositkelasItem['harga'];
+                }
+            }
+
+            $bulanName = date('F', mktime(0, 0, 0, $bulan, 1));
+            $filteredData[] = [
+                'Bulan' => $bulanName,
+                'Aktivasi' => $totalAktivasi,
+                'Deposit' => $totalDeposit,
+                'Total' => $totalAktivasi + $totalDeposit,
             ];
-            return $this->respond($response, 200);
-        } else {
-            return $this->failNotFound('Maaf, data tidak ditemukan');
+
+            // Calculate the total for each month
+            $total += $totalAktivasi + $totalDeposit;
+
+            // Reset the total deposit and total aktivasi for the next month
+            $totalDeposit = 0;
+            $totalAktivasi = 0;
         }
+
+        $response = [
+            'status' => 200,
+            'error' => false,
+            'message' => '',
+            'data' => $filteredData,
+            'total' => $total,
+        ];
+        return $this->respond($response, 200);
     }
+
+
+
 
     public function create()
     {

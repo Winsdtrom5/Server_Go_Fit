@@ -40,37 +40,59 @@ class presensigym extends BaseController
 
     public function show($nama_member = null, $tanggal = null, $jam_masuk = null, $jam_keluar = null)
     {
-        $Modelpresensigym = new Modelpresensigym();
-        $data = $Modelpresensigym->select('presensi_gym.*,bookinggym.*,member.nama_member')
+        if($tanggal == null && $jam_masuk ==  null && $jam_keluar == null){
+            $Modelpresensigym = new Modelpresensigym();
+            $data = $Modelpresensigym->select('presensi_gym.*,bookinggym.*,member.nama_member')
             ->join('bookinggym', 'presensi_gym.id_booking = bookinggym.id')
             ->join('member', 'bookinggym.id_member = member.id_member')
             ->where('member.nama_member', $nama_member)
-            ->where('bookinggym.tanggal', $tanggal)
-            ->where('bookinggym.jam_masuk', $jam_masuk)
-            ->where('bookinggym.jam_keluar', $jam_keluar)
             ->get()
             ->getResult();
-        if ($data) {
-            // $total_deposit = 0;
-            // foreach ($data as $row) {
-            //     $total_deposit += $row->jumlah_deposit;
-            // }
+            if ($data) {
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $data,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data kelas ' . $nama_member . ' tidak ditemukan');
+            }
+        }else{
+            $Modelpresensigym = new Modelpresensigym();
+            $data = $Modelpresensigym->select('presensi_gym.*,bookinggym.*,member.nama_member')
+                ->join('bookinggym', 'presensi_gym.id_booking = bookinggym.id')
+                ->join('member', 'bookinggym.id_member = member.id_member')
+                ->where('member.nama_member', $nama_member)
+                ->where('bookinggym.tanggal', $tanggal)
+                ->where('bookinggym.jam_masuk', $jam_masuk)
+                ->where('bookinggym.jam_keluar', $jam_keluar)
+                ->get()
+                ->getResult();
+            if ($data) {
+                // $total_deposit = 0;
+                // foreach ($data as $row) {
+                //     $total_deposit += $row->jumlah_deposit;
+                // }
 
-            // $new_data = [
-            //     'nama_member' => $data[0]->nama_member,
-            //     'total_deposit' => $total_deposit,
-            // ];
+                // $new_data = [
+                //     'nama_member' => $data[0]->nama_member,
+                //     'total_deposit' => $total_deposit,
+                // ];
 
-            $response = [
-                'status' => 200,
-                'error' => false,
-                'message' => '',
-                'totaldata' => 1,
-                'data' => $data,
-            ];
-            return $this->respond($response, 200);
-        } else {
-            return $this->failNotFound('Maaf, data kelas ' . $nama_member . ' tidak ditemukan');
+                $response = [
+                    'status' => 200,
+                    'error' => false,
+                    'message' => '',
+                    'totaldata' => 1,
+                    'data' => $data,
+                ];
+                return $this->respond($response, 200);
+            } else {
+                return $this->failNotFound('Maaf, data kelas ' . $nama_member . ' tidak ditemukan');
+            }
         }
     }
 

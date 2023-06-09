@@ -6,9 +6,10 @@ use CodeIgniter\API\ResponseTrait;
 use App\Models\Modelizininstruktur;
 use App\Models\Modeljadwalharian;
 use App\Controllers\BaseController;
+use App\Models\Modeljadwalumum;
 use App\Models\Modelinstruktur;
+use App\Models\Modelkelas;
 use DateTime;
-use IntlDateFormatter;
 
 class izininstruktur extends BaseController
 {
@@ -52,12 +53,12 @@ class izininstruktur extends BaseController
             'totaldata' => count($data),
             'data' => $data,
         ];
-        return $this->respond($response, 200);      
+        return $this->respond($response, 200);
     }
 
-    public function show($nama = null,$category = null)
+    public function show($nama = null, $category = null)
     {
-        if($category == null){
+        if ($category == null) {
             $Modelizininstruktur = new Modelizininstruktur();
             $data = $Modelizininstruktur->where('nama', $nama)->get()->getResult();
             if (count($data) > 0) { // Update condition to check if data is not empty
@@ -91,39 +92,86 @@ class izininstruktur extends BaseController
             }
         }
     }
-    
+
 
     public function create()
     {
         $Modelizininstruktur = new Modelizininstruktur();
-        $nama_instruktur = $this->request->getPost("nama_instruktur");
+        $nama_kelas = $this->request->getPost("nama_kelas");
+        $nama =  $this->request->getPost("nama");
+        $tanggal = $this->request->getPost("tanggal");
+        $jam = $this->request->getPost("jam");
+        $instruktur_pengganti =  $this->request->getPost("instruktur_pengganti");
+        $status = $this->request->getPost("status");
+        $alasan = $this->request->getPost("alasan");
+        $tanggal_izin = $this->request->getPost("tanggal_izin");
         $Modelinstruktur = new Modelinstruktur();
-        $instruktur = $Modelinstruktur->where('nama', $nama_instruktur)->first();
-        // Generate Bcrypt hash of the password
+        $instrukturpengganti = $Modelinstruktur->where('nama', $instruktur_pengganti)->first();
+        $instruktur= $Modelinstruktur->where('nama', $nama)->first();
         if ($instruktur === null) {
             $response = [
                 'status' => 200,
-                'error' => "false",
-                'message' => 'Gagal',
+                'error' => "true",
+                'message' => 'Gagal, instruktur tidak ditemukan.',
+            ];
+            return $this->respond($response, 200);
+        }
+        if ($instrukturpengganti === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Gagal, instruktur tidak ditemukan.',
             ];
             return $this->respond($response, 200);
         }
         $id_instruktur = $instruktur['id_instruktur'];
-        $status = $this->request->getPost("status");
-        $alasan = $this->request->getPost("alasan");
-        $tanggal_izin = $this->request->getPost("tanggal_izin");
-            $Modelizininstruktur->insert([
-                'id_instruktur' => $id_instruktur,
-                'password'=> $status,
-                'alasan' => $alasan,
-                'tanggal_izin' => $tanggal_izin
-            ]);
+        $id_pengganti = $instrukturpengganti['id_instruktur'];
+        $Modelkelas = new Modelkelas();
+        $kelas = $Modelkelas->where('nama_kelas', $nama_kelas)->first();
+        if ($kelas === null) {
             $response = [
-                'status' => 201,
-                'error' => "false",
-                'message' => "Register Berhasil"
+                'status' => 200,
+                'error' => "true",
+                'message' => 'Gagal, instruktur tidak ditemukan.',
             ];
-            return $this->respond($response, 201);
+            return $this->respond($response, 200);
+        }
+        $id_kelas = $kelas['id_kelas'];
+        $modeljadwalUmum = new Modeljadwalumum();
+        $jadwal = $modeljadwalUmum->where('id_kelas',$id_kelas)->where('jam',$jam)->where('id_instruktur',$id_instruktur)->first();
+        if ($jadwal === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => $jam,
+            ];
+            return $this->respond($response, 200);
+        }
+        $id_jadwal = $jadwal['id'];
+        $modeljadwalHarian = new Modeljadwalharian();
+        $jadwalharian = $modeljadwalHarian->where('tanggal_kelas',$tanggal)->where('jadwal',$id_jadwal)->first();
+        if ($jadwalharian === null) {
+            $response = [
+                'status' => 200,
+                'error' => "true",
+                'message' => $id_jadwal,
+            ];
+            return $this->respond($response, 200);
+        }
+        $id_jadwalharian = $jadwalharian['id'];
+        $modeljadwalHarian->update($id_jadwalharian, ['id_instruktur' => $id_pengganti]);
+        $Modelizininstruktur->insert([
+            'id_jadwal' => $id_jadwalharian,
+            'status' => 'pending',
+            'alasan' => $alasan,
+            'tanggal_izin' => $tanggal_izin
+        ]);
+        $response = [
+            'status' => 201,
+            'error' => "false",
+            'message' => "Register Berhasil"
+        ];
+        return $this->respond($response, 201);
         // }
     }
 
@@ -149,23 +197,22 @@ class izininstruktur extends BaseController
             ];
             return $this->respond($response, 400);
         }
-        
+
         // Update the `jadwalharian` table
         $modelJadwalHarian = new Modeljadwalharian();
         $modelJadwalHarian->where('id', $data['id_jadwal'])
-                          ->set(['status' => 'Libur'])
-                          ->update();
-        
+            ->set(['status' => 'Libur'])
+            ->update();
+
         $model->update($id, $data);
-        
+
         $response = [
             'status' => 200,
             'error' => null,
             'message' => $data,
         ];
-        
+
         return $this->respond($response, 201);
-             
     }
 
 
