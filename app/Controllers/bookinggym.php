@@ -62,8 +62,8 @@ class bookinggym extends BaseController
         $Modelbookinggym = new Modelbookinggym();
         $nama_member = $this->request->getPost("nama_member");
         $jamkeluar = $this->request->getPost("jam_keluar");
-        $jammasuk = $this->request->getPost("jam_masuk");
-        $tanggal = $this->request->getPost("tanggal");
+            $jammasuk = $this->request->getPost("jam_masuk");
+            $tanggal = $this->request->getPost("tanggal");
         $Modelmember = new Modelmember();
         $member = $Modelmember->where('nama_member', $nama_member)->first();
         if ($member === null) {
